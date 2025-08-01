@@ -1,0 +1,105 @@
+MIT License
+
+Copyright (c) 2024 Gap Trading System Contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+================================================================================
+
+DISCLAIMER
+
+This software is provided for educational and research purposes only. It is not
+intended as investment advice or as a recommendation to buy or sell any 
+security or other financial instrument.
+
+Trading stocks, options, and other financial instruments involves substantial 
+risk of loss and is not suitable for all investors. Past performance does not 
+guarantee future results. You should carefully consider your investment 
+objectives, level of experience, and risk appetite before making any investment 
+decisions.
+
+The authors and maintainers of this software make no representations or 
+warranties about the accuracy, completeness, or suitability of the information 
+contained herein. Any reliance you place on such information is strictly at 
+your own risk.
+
+In no event shall the authors or maintainers be liable for any direct, 
+indirect, incidental, special, consequential, or punitive damages arising out 
+of your use of this software, even if advised of the possibility of such damages.
+
+By using this software, you acknowledge that you understand these risks and 
+agree to assume full responsibility for your own investment decisions. You 
+should consult with qualified financial advisors before making any investment 
+decisions.
+
+This software may contain bugs, errors, or other defects that could cause it 
+to malfunction or produce inaccurate results. Use of this software in live 
+trading environments is at your own risk.
+
+The inclusion of any third-party trademarks, service marks, or logos in this 
+software does not constitute an endorsement by the trademark owner.
+
+================================================================================
+
+THIRD-PARTY LICENSES
+
+This software includes components from the following third-party projects:
+
+vectorbt - Apache License 2.0
+- Copyright (c) 2021 Oleg Polakow
+- https://github.com/polakowo/vectorbt
+
+pandas - BSD 3-Clause License  
+- Copyright (c) 2008-2011, AQR Capital Management, LLC, Lambda Foundry, Inc. and PyData Development Team
+- https://github.com/pandas-dev/pandas
+
+numpy - BSD 3-Clause License
+- Copyright (c) 2005-2023, NumPy Developers
+- https://github.com/numpy/numpy
+
+streamlit - Apache License 2.0
+- Copyright (c) 2019 Streamlit Inc.
+- https://github.com/streamlit/streamlit
+
+yfinance - Apache License 2.0
+- Copyright (c) 2019 Ran Aroussi
+- https://github.com/ranaroussi/yfinance
+
+alpaca-trade-api-python - Apache License 2.0
+- Copyright (c) 2018 Alpaca Securities LLC
+- https://github.com/alpacahq/alpaca-trade-api-python
+
+plotly - MIT License
+- Copyright (c) 2016-2018 Plotly, Inc
+- https://github.com/plotly/plotly.py
+
+matplotlib - PSF License (BSD-compatible)
+- Copyright (c) 2012- Matplotlib Development Team
+- https://github.com/matplotlib/matplotlib
+
+seaborn - BSD 3-Clause License
+- Copyright (c) 2012-2023, Michael L. Waskom
+- https://github.com/mwaskom/seaborn
+
+scipy - BSD 3-Clause License
+- Copyright (c) 2001-2002 Enthought, Inc. 2003-2023, SciPy Developers
+- https://github.com/scipy/scipy
+
+For complete license texts of third-party components, please refer to their
+respective repositories or the licenses included in their distributions.

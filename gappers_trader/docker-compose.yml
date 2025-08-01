@@ -1,0 +1,140 @@
+version: '3.8'
+
+services:
+  gap-trader:
+    build:
+      context: .
+      target: production
+    ports:
+      - "8501:8501"
+    environment:
+      - DATA_PATH=/app/data
+      - LOG_LEVEL=INFO
+      - CACHE_EXPIRY_HOURS=24
+      - MAX_WORKERS=4
+      # Uncomment and set your API keys
+      # - ALPACA_API_KEY=${ALPACA_API_KEY}
+      # - ALPACA_SECRET_KEY=${ALPACA_SECRET_KEY}
+      # - IEX_CLOUD_API_KEY=${IEX_CLOUD_API_KEY}
+      # - POLYGON_API_KEY=${POLYGON_API_KEY}
+    volumes:
+      - gap_data:/app/data
+      - gap_logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8501/healthz"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  gap-trader-cli:
+    build:
+      context: .
+      target: production
+    environment:
+      - DATA_PATH=/app/data
+      - LOG_LEVEL=INFO
+    volumes:
+      - gap_data:/app/data
+      - gap_logs:/app/logs
+    entrypoint: ["python", "-m", "gappers.cli"]
+    profiles:
+      - cli
+
+  gap-trader-live:
+    build:
+      context: .
+      target: production
+    environment:
+      - DATA_PATH=/app/data
+      - LOG_LEVEL=INFO
+      - ALPACA_API_KEY=${ALPACA_API_KEY}
+      - ALPACA_SECRET_KEY=${ALPACA_SECRET_KEY}
+      - ALPACA_BASE_URL=https://paper-api.alpaca.markets
+      # Optional premium feeds
+      - IEX_CLOUD_API_KEY=${IEX_CLOUD_API_KEY}
+      - POLYGON_API_KEY=${POLYGON_API_KEY}
+    volumes:
+      - gap_data:/app/data
+      - gap_logs:/app/logs
+    command: ["python", "-m", "gappers.cli", "live", "--dry-run"]
+    restart: unless-stopped
+    profiles:
+      - live
+
+  # Optional: Redis for caching (if you want to add Redis caching later)
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    profiles:
+      - cache
+
+  # Optional: PostgreSQL for trade storage (if you want persistent trade history)
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      - POSTGRES_DB=gaptrader
+      - POSTGRES_USER=gaptrader
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-changeme}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    profiles:
+      - database
+
+  # Optional: Monitoring with Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+  # Optional: Grafana for visualization
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASSWORD:-admin}
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    restart: unless-stopped
+    profiles:
+      - monitoring
+
+volumes:
+  gap_data:
+    driver: local
+  gap_logs:
+    driver: local
+  redis_data:
+    driver: local
+  postgres_data:
+    driver: local
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+networks:
+  default:
+    driver: bridge

@@ -1,0 +1,105 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Poetry
+poetry.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Data and cache
+data/
+cache/
+*.parquet
+*.csv
+*.h5
+*.hdf5
+*.pickle
+
+# Test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Documentation
+docs/_build/
+site/
+
+# CI/CD
+.github/
+
+# Development files
+.pre-commit-config.yaml
+Makefile
+docker-compose.override.yml
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Secrets and configuration
+secrets.yaml
+secrets.json
+config.yaml
+config.json
+.env.local
+.env.production
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Monitoring
+monitoring/
+
+# Backup files
+*.bak
+*.backup
