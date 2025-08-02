@@ -1,40 +1,39 @@
-# 🎯 Gap Trading System
+# Gap Trading System
 
-[![codecov](https://codecov.io/gh/yourusername/gappers-trader/branch/main/graph/badge.svg)](https://codecov.io/gh/yourusername/gappers-trader)
 [![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Production-grade overnight gap trading system with live paper-trading support via Alpaca. Built for Python 3.12+ with comprehensive backtesting, risk management, and real-time execution capabilities.
 
-## ✨ Features
+## Features
 
-### 🔍 **Signal Generation**
+### Signal Generation
 - **Survivorship-bias-free** gap detection using multiple data sources
 - **Advanced ranking** with sector diversification and technical indicators
 - **Real-time scanning** with customizable gap thresholds
 
-### 📊 **Backtesting Engine**
+### Backtesting Engine
 - **Vectorized simulation** using vectorbt for 20+ years of data in <60 seconds
 - **Realistic execution** with slippage, commissions, and SEC Rule 201 compliance
 - **Parameter optimization** with grid search and sensitivity analysis
 
-### 📈 **Analytics & Visualization**
+### Analytics & Visualization
 - **Interactive Streamlit dashboard** with real-time performance metrics
 - **Comprehensive risk analysis** including VaR, CVaR, and drawdown metrics
 - **Professional reports** with detailed trade analysis and benchmarking
 
-### ⚡ **Live Trading**
+### Live Trading
 - **Alpaca Paper Trading** integration with bracket orders
 - **Scheduled execution** with pre-market scanning and automatic position management
 - **Risk controls** with position sizing, sector limits, and time-based exits
 
-### 🛠️ **Production Ready**
+### Production Ready
 - **Multi-source data feeds** (yfinance, IEX Cloud, Polygon.io)
 - **Docker containerization** with multi-stage builds
 - **CI/CD pipeline** with comprehensive testing and security scanning
 - **Monitoring & observability** with structured logging and health checks
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -85,7 +84,7 @@ pip install git+https://github.com/yourusername/gappers-trader.git
 
 ### Basic Usage
 
-#### 1. **Streamlit Dashboard**
+#### 1. Streamlit Dashboard
 
 ```bash
 # Start the interactive dashboard
@@ -94,7 +93,7 @@ streamlit run app.py
 # Navigate to http://localhost:8501
 ```
 
-#### 2. **Command Line Interface**
+#### 2. Command Line Interface
 
 ```bash
 # Run a backtest
@@ -110,7 +109,7 @@ gappers sweep --profit-target 0.03 0.05 0.07 --stop-loss 0.01 0.02 --output swee
 gappers live --dry-run
 ```
 
-#### 3. **Python API**
+#### 3. Python API
 
 ```python
 from datetime import datetime
@@ -140,7 +139,7 @@ print(f"Total trades: {len(results['trades'])}")
 print(f"Total return: {results['portfolio_values']['value'].iloc[-1] / 100000 - 1:.2%}")
 ```
 
-## 📋 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -182,24 +181,24 @@ Key parameters can be configured via the CLI, API, or Streamlit interface:
 | `sector_diversification` | True | Enable sector limits |
 | `max_per_sector` | 3 | Max positions per sector |
 
-## 📊 Performance Metrics
+## Performance Metrics
 
 The system calculates comprehensive performance metrics:
 
-### **Return Metrics**
+### Return Metrics
 - Total Return, CAGR, Sharpe Ratio, Sortino Ratio
 - Win Rate, Average Winner/Loser, Profit Factor
 
-### **Risk Metrics**  
+### Risk Metrics
 - Maximum Drawdown, Value at Risk (95%, 99%)
 - Conditional VaR, Beta, Tracking Error
 
-### **Trade Analysis**
+### Trade Analysis
 - Distribution by exit reason, hold time, sector
 - Temporal patterns (monthly, daily, hourly performance)
 - Gap size vs. return correlation analysis
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -220,7 +219,7 @@ The system calculates comprehensive performance metrics:
 └─────────────────┘    └─────────────────┘    └─────────────────┘
 ```
 
-### **Core Components**
+### Core Components
 
 - **DataFeed**: Multi-source data ingestion with intelligent caching
 - **UniverseBuilder**: Survivorship-bias-free symbol universe construction
@@ -229,7 +228,7 @@ The system calculates comprehensive performance metrics:
 - **LiveTrader**: Real-time execution via Alpaca with risk management
 - **PerformanceAnalyzer**: Comprehensive analytics and visualization
 
-## 🧪 Testing
+## Testing
 
 The system includes comprehensive tests with 80%+ coverage:
 
@@ -244,15 +243,15 @@ poetry run pytest --cov=gappers --cov-report=html
 poetry run pytest tests/test_backtest.py -v
 ```
 
-### **Test Categories**
+### Test Categories
 - **Unit Tests**: Individual component functionality
 - **Integration Tests**: End-to-end workflow testing  
 - **Performance Tests**: Backtesting speed and memory usage
 - **Live Trading Tests**: Mock execution and risk management
 
-## 🐳 Docker Deployment
+## Docker Deployment
 
-### **Development**
+### Development
 
 ```bash
 # Build and run development container
@@ -262,7 +261,7 @@ docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
 docker-compose run --rm gap-trader-cli scan --help
 ```
 
-### **Production**
+### Production
 
 ```bash
 # Production deployment with monitoring
@@ -272,7 +271,7 @@ docker-compose --profile monitoring up -d
 docker-compose up --scale gap-trader=3
 ```
 
-### **Services Available**
+### Services Available
 
 - `gap-trader`: Streamlit dashboard (port 8501)
 - `gap-trader-cli`: Command-line interface
@@ -282,9 +281,9 @@ docker-compose up --scale gap-trader=3
 - `prometheus`: Metrics collection (optional)
 - `grafana`: Monitoring dashboard (optional)
 
-## 📈 Usage Examples
+## Usage Examples
 
-### **Basic Backtesting**
+### Basic Backtesting
 
 ```python
 from gappers import Backtester, GapParams
@@ -307,7 +306,7 @@ report = analyzer.generate_performance_report(analysis)
 print(report)
 ```
 
-### **Live Paper Trading**
+### Live Paper Trading
 
 ```python
 from gappers import LiveTrader, GapParams
@@ -324,7 +323,7 @@ print(f"Found {opportunities['gaps_found']} opportunities")
 trader.start_live_trading(params)
 ```
 
-### **Advanced Analysis**
+### Advanced Analysis
 
 ```python
 from gappers import PerformanceAnalyzer
@@ -343,29 +342,29 @@ dashboard = analyzer.create_performance_dashboard(analysis)
 dashboard.write_html('performance_dashboard.html')
 ```
 
-## 🛡️ Security & Compliance
+## Security & Compliance
 
-### **Security Features**
+### Security Features
 - **No hardcoded secrets** - all credentials via environment variables
 - **Input validation** on all user inputs and API responses
 - **Rate limiting** and request throttling for external APIs
 - **Audit logging** of all trades and system events
 
-### **Compliance**
+### Compliance
 - **SEC Rule 201** compliance for short sale restrictions
 - **Position limits** and risk management controls
 - **Trade reporting** with full audit trail
 - **Data retention** policies for regulatory requirements
 
-### **Risk Management**
+### Risk Management
 - **Position sizing** with maximum exposure limits
 - **Sector diversification** to limit concentration risk
 - **Time-based exits** to limit overnight exposure
 - **Circuit breakers** for unusual market conditions
 
-## 🔧 Development
+## Development
 
-### **Setting up Development Environment**
+### Setting up Development Environment
 
 ```bash
 # Clone and setup
@@ -382,7 +381,7 @@ poetry run pre-commit install
 poetry run streamlit run app.py --server.runOnSave true
 ```
 
-### **Code Quality**
+### Code Quality
 
 The project uses several tools to maintain code quality:
 
@@ -403,7 +402,7 @@ poetry run mypy gappers/
 poetry run bandit -r gappers/
 ```
 
-## 📚 Documentation
+## Documentation
 
 - **[API Reference](docs/api.md)**: Complete API documentation
 - **[Strategy Guide](docs/strategy.md)**: Gap trading strategy explanation
@@ -411,11 +410,11 @@ poetry run bandit -r gappers/
 - **[Deployment](docs/deployment.md)**: Production deployment guide
 - **[Contributing](CONTRIBUTING.md)**: Development and contribution guidelines
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
-### **Development Workflow**
+### Development Workflow
 
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
@@ -425,24 +424,24 @@ Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for gui
 6. Push to the branch (`git push origin feature/amazing-feature`)
 7. Open a Pull Request
 
-## 📜 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## ⚠️ Disclaimer
+## Disclaimer
 
 This software is for educational and research purposes only. Past performance does not guarantee future results. Trading involves substantial risk of loss and is not suitable for all investors. Always consult with a qualified financial advisor before making investment decisions.
 
 The authors and contributors are not responsible for any financial losses incurred through the use of this software.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
 - **[vectorbt](https://vectorbt.dev/)**: High-performance backtesting framework
 - **[Streamlit](https://streamlit.io/)**: Interactive web application framework  
 - **[Alpaca](https://alpaca.markets/)**: Commission-free trading API
 - **[yfinance](https://github.com/ranaroussi/yfinance)**: Yahoo Finance data access
 
-## 📞 Support
+## Support
 
 - **Issues**: [GitHub Issues](https://github.com/yourusername/gappers-trader/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/yourusername/gappers-trader/discussions)
@@ -452,8 +451,8 @@ The authors and contributors are not responsible for any financial losses incurr
 
 <div align="center">
 
-**Built with ❤️ for the trading community**
+**Built for the trading community**
 
-[⭐ Star this repo](https://github.com/yourusername/gappers-trader) • [🐛 Report Bug](https://github.com/yourusername/gappers-trader/issues) • [💡 Request Feature](https://github.com/yourusername/gappers-trader/issues)
+[Star this repo](https://github.com/yourusername/gappers-trader) • [Report Bug](https://github.com/yourusername/gappers-trader/issues) • [Request Feature](https://github.com/yourusername/gappers-trader/issues)
 
 </div>

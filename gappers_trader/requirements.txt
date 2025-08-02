@@ -1,0 +1,36 @@
+# Core dependencies
+pandas>=2.2.0
+numpy>=1.26.0
+yfinance>=0.2.33
+streamlit>=1.29.0
+plotly>=5.18.0
+rich>=13.7.0
+PyYAML>=6.0.1
+
+# Data handling
+pyarrow>=14.0.0
+fastparquet>=2024.2.0
+
+# API clients
+requests>=2.31.0
+urllib3>=2.0.0
+
+# Optional premium data sources
+polygon-api-client>=1.13.0; extra == "premium"
+tiingo>=0.14.0; extra == "premium"
+alpaca-trade-api>=3.1.1; extra == "premium"
+
+# Development dependencies
+pytest>=7.4.0
+pytest-cov>=4.1.0
+pytest-asyncio>=0.21.0
+black>=23.12.0
+ruff>=0.1.0
+mypy>=1.7.0
+pre-commit>=3.5.0
+
+# Utilities
+python-dotenv>=1.0.0
+click>=8.1.7
+schedule>=1.2.0
+tqdm>=4.66.0

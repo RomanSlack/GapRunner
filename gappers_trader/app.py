@@ -10,14 +10,7 @@ import plotly.graph_objects as go
 import streamlit as st
 from plotly.subplots import make_subplots
 
-from gappers import (
-    Backtester,
-    DataFeed,
-    GapParams,
-    PerformanceAnalyzer,
-    SignalGenerator,
-    UniverseBuilder,
-)
+from gappers.dead_simple import DeadSimpleTrader
 from gappers.config import config
 
 # Configure logging
@@ -55,21 +48,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-@st.cache_data(ttl=3600)  # Cache for 1 hour
-def load_data_feed():
-    """Load and cache data feed."""
-    return DataFeed()
-
-
-@st.cache_data(ttl=3600)
-def load_components(_data_feed):
-    """Load and cache system components."""
-    universe_builder = UniverseBuilder(_data_feed)
-    signal_generator = SignalGenerator(_data_feed, universe_builder)
-    backtester = Backtester(_data_feed, signal_generator)
-    analyzer = PerformanceAnalyzer()
-    
-    return universe_builder, signal_generator, backtester, analyzer
+@st.cache_resource
+def load_simple_trader():
+    """Load dead simple trader."""
+    return DeadSimpleTrader()
 
 
 def main():
@@ -77,12 +59,11 @@ def main():
     st.title("🎯 Gap Trading Strategy Dashboard")
     st.markdown("Production-grade overnight gap trading system with live paper-trading support")
     
-    # Initialize components
+    # Initialize simple trader
     try:
-        data_feed = load_data_feed()
-        universe_builder, signal_generator, backtester, analyzer = load_components(data_feed)
+        trader = load_simple_trader()
     except Exception as e:
-        st.error(f"Error initializing components: {e}")
+        st.error(f"Error initializing trader: {e}")
         st.stop()
     
     # Sidebar for parameters
@@ -95,13 +76,13 @@ def main():
         with col1:
             start_date = st.date_input(
                 "Start Date",
-                value=datetime.now() - timedelta(days=365),
+                value=datetime(2024, 8, 2).date(),
                 max_value=datetime.now() - timedelta(days=1)
             )
         with col2:
             end_date = st.date_input(
                 "End Date",
-                value=datetime.now() - timedelta(days=1),
+                value=datetime(2024, 10, 15).date(),
                 max_value=datetime.now() - timedelta(days=1)
             )
         
@@ -138,24 +119,17 @@ def main():
     if not hasattr(st.session_state, 'run_backtest'):
         show_welcome_screen()
     else:
-        # Create parameters object
-        params = GapParams(
-            profit_target=profit_target,
-            stop_loss=stop_loss,
-            max_hold_time_hours=max_hold_hours,
-            top_k=top_k,
-            min_gap_pct=min_gap,
-            max_gap_pct=max_gap,
-            position_size=position_size,
-            max_positions=max_positions,
-            sector_diversification=sector_diversification,
-            max_per_sector=max_per_sector,
-            commission_per_share=commission,
-            slippage_bps=slippage_bps,
-        )
+        # Create simple parameters
+        params = {
+            'profit_target': profit_target,
+            'stop_loss': stop_loss,
+            'top_k': top_k,
+            'min_gap': min_gap,
+            'position_size': position_size
+        }
         
-        run_backtest_analysis(
-            backtester, analyzer, datetime.combine(start_date, datetime.min.time()),
+        run_simple_backtest(
+            trader, datetime.combine(start_date, datetime.min.time()),
             datetime.combine(end_date, datetime.min.time()), params
         )
 
@@ -197,7 +171,8 @@ def show_welcome_screen():
     st.info("👈 Configure your strategy parameters in the sidebar and click 'Run Backtest' to get started!")
     
     # Show current market gaps (if available)
-    show_current_gaps()
+    # Commented out to prevent automatic loading on startup
+    # show_current_gaps()
 
 
 def show_current_gaps():
@@ -240,23 +215,79 @@ def show_current_gaps():
         st.warning(f"Could not load current gaps: {e}")
 
 
-@st.cache_data(ttl=1800)  # Cache for 30 minutes
-def run_backtest_analysis(backtester, analyzer, start_date, end_date, params):
-    """Run backtest and analysis with caching."""
-    with st.spinner("Running backtest... This may take a few minutes."):
+def run_simple_backtest(trader, start_date, end_date, params):
+    """Run simple backtest."""
+    with st.spinner("Running simple backtest..."):
         try:
             # Run backtest
-            results = backtester.run_backtest(start_date, end_date, params)
-            
-            # Analyze results
-            analysis = analyzer.analyze_backtest_results(results)
+            results = trader.run_backtest(start_date, end_date, params)
             
             # Display results
-            display_backtest_results(results, analysis)
+            display_simple_results(results)
             
         except Exception as e:
             st.error(f"Error running backtest: {e}")
             logger.error(f"Backtest error: {e}", exc_info=True)
+
+
+def display_simple_results(results: Dict):
+    """Display simple backtest results."""
+    st.markdown("## 📊 Backtest Results")
+    
+    # Key metrics
+    col1, col2, col3, col4, col5 = st.columns(5)
+    
+    with col1:
+        st.metric("Total P&L", f"${results['total_return']:.0f}")
+    with col2:
+        st.metric("Total Return", f"{results.get('total_return_pct', 0):.1%}")
+    with col3:
+        st.metric("Final Value", f"${results.get('final_portfolio_value', 100000):.0f}")
+    with col4:
+        st.metric("Win Rate", f"{results['win_rate']:.1%}")
+    with col5:
+        st.metric("Total Trades", results['num_trades'])
+    
+    # Portfolio chart
+    if 'portfolio_values' in results and not results['portfolio_values'].empty:
+        st.markdown("## 📈 Portfolio Performance")
+        
+        portfolio_df = results['portfolio_values']
+        
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=portfolio_df.index,
+            y=portfolio_df['portfolio_value'],
+            mode='lines',
+            name='Portfolio Value',
+            line=dict(color='#1f77b4', width=2)
+        ))
+        
+        # Add starting value line
+        fig.add_hline(y=100000, line_dash="dash", line_color="gray", 
+                     annotation_text="Starting Value ($100k)")
+        
+        fig.update_layout(
+            title="Portfolio Value Over Time",
+            xaxis_title="Date",
+            yaxis_title="Portfolio Value ($)",
+            hovermode='x unified',
+            height=400
+        )
+        
+        st.plotly_chart(fig, use_container_width=True)
+    
+    # Trade details
+    if results['trades']:
+        st.markdown("## 📋 Trade Details")
+        trades_df = pd.DataFrame(results['trades'])
+        trades_df['pnl'] = trades_df['pnl'].round(2)
+        trades_df['gap_pct'] = (trades_df['gap_pct'] * 100).round(2)
+        trades_df['pnl_pct'] = (trades_df['pnl_pct'] * 100).round(2)
+        
+        st.dataframe(trades_df, use_container_width=True)
+    else:
+        st.warning("No trades found in backtest period.")
 
 
 def display_backtest_results(results: Dict, analysis: Dict):

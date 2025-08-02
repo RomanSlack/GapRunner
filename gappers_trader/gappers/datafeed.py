@@ -168,7 +168,23 @@ class DataFeed:
             df["symbol"] = symbol
 
             # Filter to requested date range (yfinance sometimes returns extra days)
-            df = df.loc[start:end]
+            # Handle timezone comparison issue by converting to timezone-aware if needed
+            if df.index.tz is not None:
+                # DataFrame index is timezone-aware, convert start/end to match
+                start_ts = pd.Timestamp(start)
+                end_ts = pd.Timestamp(end)
+                if start_ts.tzinfo is None:
+                    start_ts = start_ts.tz_localize(df.index.tz)
+                else:
+                    start_ts = start_ts.tz_convert(df.index.tz)
+                if end_ts.tzinfo is None:
+                    end_ts = end_ts.tz_localize(df.index.tz)
+                else:
+                    end_ts = end_ts.tz_convert(df.index.tz)
+                df = df.loc[start_ts:end_ts]
+            else:
+                # DataFrame index is timezone-naive, use original datetime objects
+                df = df.loc[start:end]
 
             return df
 
@@ -331,13 +347,17 @@ class DataFeed:
             # Get splits
             splits = ticker.splits
             if not splits.empty:
-                splits = splits.loc[start:end]
+                # Handle timezone comparison issue
+                start_tz, end_tz = self._match_timezone(splits.index, start, end)
+                splits = splits.loc[start_tz:end_tz]
                 splits = pd.DataFrame({"split_ratio": splits})
             
             # Get dividends
             dividends = ticker.dividends
             if not dividends.empty:
-                dividends = dividends.loc[start:end]
+                # Handle timezone comparison issue
+                start_tz, end_tz = self._match_timezone(dividends.index, start, end)
+                dividends = dividends.loc[start_tz:end_tz]
                 dividends = pd.DataFrame({"dividend": dividends})
             
             return {"splits": splits, "dividends": dividends}
@@ -361,3 +381,27 @@ class DataFeed:
 
         logger.info(f"Cleared {count} cache files")
         return count
+
+    def _match_timezone(self, index: DatetimeIndex, start: datetime, end: datetime) -> tuple[pd.Timestamp, pd.Timestamp]:
+        """Match timezone between index and start/end datetimes to avoid comparison errors."""
+        start_ts = pd.Timestamp(start)
+        end_ts = pd.Timestamp(end)
+        
+        if index.tz is not None:
+            # Index is timezone-aware, convert start/end to match
+            if start_ts.tzinfo is None:
+                start_ts = start_ts.tz_localize(index.tz)
+            else:
+                start_ts = start_ts.tz_convert(index.tz)
+            if end_ts.tzinfo is None:
+                end_ts = end_ts.tz_localize(index.tz)
+            else:
+                end_ts = end_ts.tz_convert(index.tz)
+        else:
+            # Index is timezone-naive, ensure start/end are also naive
+            if start_ts.tzinfo is not None:
+                start_ts = start_ts.tz_localize(None)
+            if end_ts.tzinfo is not None:
+                end_ts = end_ts.tz_localize(None)
+        
+        return start_ts, end_ts
