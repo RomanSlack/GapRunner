@@ -1,428 +1,339 @@
-# Gap Trading System
+# GapRunner - Production Gap Trading System
 
-[![Python 3.12](https://img.shields.io/badge/python-3.12-blue.svg)](https://www.python.org/downloads/release/python-3120/)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Production Ready](https://img.shields.io/badge/status-production--ready-green.svg)]()
+[![Security Hardened](https://img.shields.io/badge/security-hardened-brightgreen.svg)]()
+[![Data Integrity](https://img.shields.io/badge/data-validated-blue.svg)]()
+[![Real-time](https://img.shields.io/badge/execution-real--time-orange.svg)]()
 
-Production-grade overnight gap trading system with live paper-trading support via Alpaca. Built for Python 3.12+ with comprehensive backtesting, risk management, and real-time execution capabilities.
+![Backtest Results](/images/screnshot_1.png)
 
-## Features
+A production-ready overnight gap trading system implementing momentum-gap strategy with real-time data collection, advanced portfolio simulation, and comprehensive risk management.
 
-### Signal Generation
-- **Survivorship-bias-free** gap detection using multiple data sources
-- **Advanced ranking** with sector diversification and technical indicators
-- **Real-time scanning** with customizable gap thresholds
+## Overview
 
-### Backtesting Engine
-- **Vectorized simulation** using vectorbt for 20+ years of data in <60 seconds
-- **Realistic execution** with slippage, commissions, and SEC Rule 201 compliance
-- **Parameter optimization** with grid search and sensitivity analysis
+GapRunner is a professional-grade two-tier trading system designed for production deployment. The system trades the top K gap-up stocks each session using a sophisticated momentum strategy with multiple exit conditions including profit targets, trailing stops, hard stops, and time-based exits.
 
-### Analytics & Visualization
-- **Interactive Streamlit dashboard** with real-time performance metrics
-- **Comprehensive risk analysis** including VaR, CVaR, and drawdown metrics
-- **Professional reports** with detailed trade analysis and benchmarking
+## Architecture
 
-### Live Trading
-- **Alpaca Paper Trading** integration with bracket orders
-- **Scheduled execution** with pre-market scanning and automatic position management
-- **Risk controls** with position sizing, sector limits, and time-based exits
+### Two-Tier Design
 
-### Production Ready
-- **Multi-source data feeds** (yfinance, IEX Cloud, Polygon.io)
-- **Docker containerization** with multi-stage builds
-- **CI/CD pipeline** with comprehensive testing and security scanning
-- **Monitoring & observability** with structured logging and health checks
+**Tier 1: Data Collection & Storage**
+- Robust data pipeline with progress tracking
+- Multi-source data providers (Yahoo Finance, Polygon, Tiingo)
+- Partitioned Parquet storage for efficient access
+- Data validation and integrity checking
+
+**Tier 2: Analysis & Trading**
+- Streamlit dashboard for strategy execution
+- Real-time gap detection and ranking
+- Advanced portfolio simulation engine
+- Comprehensive performance analytics
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    TIER 1: DATA LAYER                      │
+├─────────────────────────────────────────────────────────────┤
+│  Data Collection → Storage → Validation → Management       │
+│  • Multi-source APIs     • Parquet files    • CLI tools   │
+│  • Progress tracking     • Partitioning     • Monitoring   │
+└─────────────────────────────────────────────────────────────┘
+                               │
+                               ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   TIER 2: ANALYSIS LAYER                   │
+├─────────────────────────────────────────────────────────────┤
+│  Gap Engine → Portfolio Sim → Dashboard → Strategy Exec    │
+│  • Real-time gaps    • P&L tracking    • Web interface     │
+│  • Ranking system    • Risk metrics    • Configuration     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+## Core Features
+
+### Production-Ready Components
+- Multi-source data providers with failover
+- Robust error handling and comprehensive logging
+- CLI tools with rich progress bars
+- Partitioned Parquet storage for efficiency
+- Real-time gap detection with technical indicators
+- Advanced portfolio simulation engine
+- YAML configuration management with validation
+- Security best practices throughout
+
+### Gap Analysis Engine
+- Real-time gap calculation and ranking
+- Technical indicator integration
+- Historical pattern analysis
+- Sector diversification support
+- Risk management controls
+
+### Interactive Dashboard
+- Production Streamlit interface
+- Real-time data visualization
+- Configuration management UI
+- Portfolio performance tracking
+- Data validation tools
 
 ## Quick Start
 
 ### Prerequisites
-
 - Python 3.12+
-- 16GB RAM recommended for full backtests
-- Ubuntu 24.04 or compatible Linux distribution
+- 8GB+ RAM recommended
+- 10GB+ disk space for data storage
 
 ### Installation
 
-#### Option 1: Using Poetry (Recommended)
-
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/gappers-trader.git
-cd gappers-trader
-
-# Install Poetry if not already installed
-curl -sSL https://install.python-poetry.org | python3 -
+git clone https://github.com/yourusername/GapRunner.git
+cd GapRunner/gappers_trader
 
 # Install dependencies
+pip install -r requirements.txt
+
+# Or with Poetry
 poetry install
-
-# Activate virtual environment
-poetry shell
 ```
 
-#### Option 2: Using Docker
+### Environment Setup
+
+Create a `.env` file for API keys (optional):
 
 ```bash
-# Clone and run with Docker Compose
-git clone https://github.com/yourusername/gappers-trader.git
-cd gappers-trader
-
-# Start the Streamlit dashboard
-docker-compose up gap-trader
-
-# Access dashboard at http://localhost:8501
-```
-
-#### Option 3: Using pip
-
-```bash
-pip install gappers-trader
-
-# Or install from source
-pip install git+https://github.com/yourusername/gappers-trader.git
+# Premium data sources (optional)
+POLYGON_API_KEY=your_polygon_key
+TIINGO_API_KEY=your_tiingo_key
+ALPACA_API_KEY=your_alpaca_key
+ALPACA_SECRET_KEY=your_alpaca_secret
 ```
 
 ### Basic Usage
 
-#### 1. Streamlit Dashboard
+#### 1. Data Collection (Tier 1)
 
 ```bash
-# Start the interactive dashboard
-streamlit run app.py
+# Collect last 30 days of data
+python cli_collect.py --days 30
 
-# Navigate to http://localhost:8501
+# Collect specific date range
+python cli_collect.py --start-end 2024-01-01 2024-01-31
+
+# Validate data integrity
+python cli_collect.py --days 7 --validate
 ```
 
-#### 2. Command Line Interface
+#### 2. Gap Analysis (CLI)
 
 ```bash
-# Run a backtest
-gappers backtest --start-date 2020-01-01 --end-date 2023-12-31 --profit-target 0.05
+# Analyze yesterday's gaps
+python cli_gaps.py --yesterday
 
-# Scan for today's gaps
-gappers scan --min-gap 0.02 --top-k 10
+# Analyze specific date
+python cli_gaps.py --date 2024-01-15
 
-# Parameter sweep optimization  
-gappers sweep --profit-target 0.03 0.05 0.07 --stop-loss 0.01 0.02 --output sweep_results.csv
-
-# Live paper trading (requires Alpaca credentials)
-gappers live --dry-run
+# Export to CSV
+python cli_gaps.py --date 2024-01-15 --export gaps.csv
 ```
 
-#### 3. Python API
+#### 3. Dashboard (Tier 2)
 
-```python
-from datetime import datetime
-from gappers import DataFeed, SignalGenerator, Backtester, GapParams
-
-# Initialize components
-data_feed = DataFeed()
-signal_gen = SignalGenerator(data_feed)
-backtester = Backtester(data_feed, signal_gen)
-
-# Configure strategy parameters
-params = GapParams(
-    profit_target=0.05,  # 5% profit target
-    stop_loss=0.02,      # 2% stop loss
-    top_k=10,            # Trade top 10 gaps
-    position_size=10000, # $10k per position
-)
-
-# Run backtest
-results = backtester.run_backtest(
-    start_date=datetime(2020, 1, 1),
-    end_date=datetime(2023, 12, 31),
-    params=params
-)
-
-print(f"Total trades: {len(results['trades'])}")
-print(f"Total return: {results['portfolio_values']['value'].iloc[-1] / 100000 - 1:.2%}")
+```bash
+# Launch Streamlit dashboard
+streamlit run app_new.py
 ```
+
+Navigate to `http://localhost:8501` to access the dashboard.
+
+## Strategy Implementation
+
+### Core Strategy Rules
+- **Entry**: Top K gap-up stocks at market open (09:30 ET)
+- **Profit Target**: +10% from entry (configurable)
+- **Trailing Stop**: 2% from session high (configurable)
+- **Hard Stop**: -4% from entry (configurable)
+- **Time Stop**: 15:55 ET exit (configurable)
+
+### Risk Management
+- Position sizing: $1,000 per position (configurable)
+- Maximum positions: 10 (configurable)
+- Sector diversification limits
+- Portfolio risk controls
+
+### Cost Model
+- Commission: $0.005 per share
+- Slippage: 10 basis points
+- All costs included in P&L calculations
 
 ## Configuration
 
-### Environment Variables
+The system uses YAML configuration files for all settings:
 
-Create a `.env` file in the project root:
+```yaml
+# config.yaml
+data_sources:
+  primary: "yfinance"
+  fallback: ["yfinance"]
+
+data_collection:
+  universe_size: 3000
+  min_dollar_volume: 1000000
+  frequency_minutes: 30
+
+strategy:
+  top_k: 10
+  min_gap_pct: 0.02
+  max_gap_pct: 0.30
+  profit_target_pct: 0.10
+  trailing_stop_pct: 0.02
+  hard_stop_pct: 0.04
+  time_stop_hour: 15
+```
+
+## Project Structure
+
+```
+gappers_trader/
+├── gappers/                    # Core system modules
+│   ├── config_new.py          # YAML configuration management
+│   ├── data_collector.py      # Production data collection
+│   ├── data_manager.py        # Data storage & retrieval
+│   ├── data_providers.py      # Multi-source data providers
+│   ├── gap_engine.py          # Gap calculation & ranking
+│   ├── portfolio_engine.py    # Portfolio simulation engine
+│   ├── universe.py            # Stock universe management
+│   └── ...
+├── app_new.py                 # Production Streamlit dashboard
+├── cli_collect.py             # CLI data collection tool
+├── cli_gaps.py                # CLI gap analysis tool
+├── config.yaml                # System configuration
+├── requirements.txt           # Python dependencies
+└── README_NEW.md              # Detailed documentation
+```
+
+## Dashboard Features
+
+### Dashboard
+- System overview and key metrics
+- Quick gap analysis
+- Real-time status monitoring
+
+### Data Collection
+- Interactive data collection interface
+- Progress tracking with rich progress bars
+- Data validation and integrity checks
+- Storage statistics and management
+
+### Gap Analysis
+- Real-time gap detection and ranking
+- Historical pattern analysis
+- Technical indicator integration
+- Interactive charts and visualizations
+
+### Portfolio Simulation
+- Advanced backtesting engine
+- P&L tracking with costs
+- Risk metrics and drawdown analysis
+- Strategy parameter optimization with tooltips
+
+### Configuration
+- Web-based configuration management
+- Parameter validation
+- Multiple data source support
+- Security settings
+
+## Security & Production Features
+
+### Security
+- API key encryption and secure storage
+- Rate limiting and request throttling
+- Input validation and sanitization
+- Comprehensive audit logging
+- Error handling without data exposure
+
+### Production Readiness
+- Robust error handling and recovery
+- Comprehensive logging system
+- Data validation and integrity checks
+- Performance monitoring
+- Scalable architecture
+- Memory-efficient data processing
+- Concurrent data collection
+- Progress tracking and status reporting
+
+### Performance
+- Partitioned Parquet storage for fast queries
+- Caching system for API responses
+- Concurrent data processing
+- Memory-efficient operations
+- Optimized data structures
+
+## Testing & Validation
 
 ```bash
-# Data Configuration
-DATA_PATH=./data
-LOG_LEVEL=INFO
-CACHE_EXPIRY_HOURS=24
-
-# Alpaca Paper Trading (Required for live trading)
-ALPACA_API_KEY=your_alpaca_api_key
-ALPACA_SECRET_KEY=your_alpaca_secret_key
-ALPACA_BASE_URL=https://paper-api.alpaca.markets
-
-# Optional Premium Data Feeds
-IEX_CLOUD_API_KEY=your_iex_cloud_key
-POLYGON_API_KEY=your_polygon_key
-
-# Trading Configuration
-DEFAULT_POSITION_SIZE=10000
-DEFAULT_COMMISSION=0.005
-DEFAULT_SLIPPAGE_BPS=10
-```
-
-### Strategy Parameters
-
-Key parameters can be configured via the CLI, API, or Streamlit interface:
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `profit_target` | 0.05 | Profit target as decimal (5%) |
-| `stop_loss` | 0.02 | Stop loss as decimal (2%) |
-| `top_k` | 10 | Number of top gaps to trade |
-| `min_gap_pct` | 0.02 | Minimum gap size (2%) |
-| `max_gap_pct` | 0.30 | Maximum gap size (30%) |
-| `max_hold_time_hours` | 6 | Maximum hold time |
-| `sector_diversification` | True | Enable sector limits |
-| `max_per_sector` | 3 | Max positions per sector |
-
-## Performance Metrics
-
-The system calculates comprehensive performance metrics:
-
-### Return Metrics
-- Total Return, CAGR, Sharpe Ratio, Sortino Ratio
-- Win Rate, Average Winner/Loser, Profit Factor
-
-### Risk Metrics
-- Maximum Drawdown, Value at Risk (95%, 99%)
-- Conditional VaR, Beta, Tracking Error
-
-### Trade Analysis
-- Distribution by exit reason, hold time, sector
-- Temporal patterns (monthly, daily, hourly performance)
-- Gap size vs. return correlation analysis
-
-## Architecture
-
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Data Sources  │    │  Signal Engine  │    │ Execution Engine│
-│                 │    │                 │    │                 │
-│ • yfinance      │───▶│ • Gap Detection │───▶│ • Backtesting   │
-│ • IEX Cloud     │    │ • Ranking       │    │ • Live Trading  │
-│ • Polygon.io    │    │ • Filtering     │    │ • Risk Mgmt     │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         ▼                       ▼                       ▼
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│ Universe Builder│    │   Analytics     │    │  Interfaces     │
-│                 │    │                 │    │                 │
-│ • Liquidity     │    │ • Performance   │    │ • Streamlit UI  │
-│ • Survivorship  │    │ • Risk Analysis │    │ • CLI           │
-│ • Filtering     │    │ • Reporting     │    │ • Python API    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
-
-### Core Components
-
-- **DataFeed**: Multi-source data ingestion with intelligent caching
-- **UniverseBuilder**: Survivorship-bias-free symbol universe construction
-- **SignalGenerator**: Gap detection, ranking, and technical analysis
-- **Backtester**: Vectorized simulation engine with realistic execution
-- **LiveTrader**: Real-time execution via Alpaca with risk management
-- **PerformanceAnalyzer**: Comprehensive analytics and visualization
-
-## Testing
-
-The system includes comprehensive tests with 80%+ coverage:
-
-```bash
-# Run all tests
-poetry run pytest
+# Run tests
+pytest tests/
 
 # Run with coverage
-poetry run pytest --cov=gappers --cov-report=html
+pytest --cov=gappers tests/
 
-# Run specific test categories  
-poetry run pytest tests/test_backtest.py -v
+# Lint code
+ruff check gappers/
+black --check gappers/
+
+# Type checking
+mypy gappers/
 ```
 
-### Test Categories
-- **Unit Tests**: Individual component functionality
-- **Integration Tests**: End-to-end workflow testing  
-- **Performance Tests**: Backtesting speed and memory usage
-- **Live Trading Tests**: Mock execution and risk management
+## API Reference
 
-## Docker Deployment
+### Core Classes
 
-### Development
-
-```bash
-# Build and run development container
-docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
-
-# Run CLI commands
-docker-compose run --rm gap-trader-cli scan --help
-```
-
-### Production
-
-```bash
-# Production deployment with monitoring
-docker-compose --profile monitoring up -d
-
-# Scale for high throughput
-docker-compose up --scale gap-trader=3
-```
-
-### Services Available
-
-- `gap-trader`: Streamlit dashboard (port 8501)
-- `gap-trader-cli`: Command-line interface
-- `gap-trader-live`: Live trading service
-- `redis`: Caching layer (optional)
-- `postgres`: Trade history storage (optional)
-- `prometheus`: Metrics collection (optional)
-- `grafana`: Monitoring dashboard (optional)
-
-## Usage Examples
-
-### Basic Backtesting
-
+#### `Config`
 ```python
-from gappers import Backtester, GapParams
-from datetime import datetime
+from gappers.config_new import Config
 
-# 5-year backtest with optimization
-backtester = Backtester()
-params = GapParams(profit_target=0.06, stop_loss=0.025)
-
-results = backtester.run_backtest(
-    start_date=datetime(2019, 1, 1),
-    end_date=datetime(2024, 1, 1), 
-    params=params
-)
-
-# Analyze results
-analyzer = PerformanceAnalyzer()
-analysis = analyzer.analyze_backtest_results(results)
-report = analyzer.generate_performance_report(analysis)
-print(report)
+config = Config.load("config.yaml")
+issues = config.validate()  # Returns validation issues
 ```
 
-### Live Paper Trading
-
+#### `DataCollector`
 ```python
-from gappers import LiveTrader, GapParams
+from gappers.data_collector import DataCollector
 
-# Initialize live trader
-trader = LiveTrader(dry_run=False)  # Set to False for actual paper trading
-params = GapParams(top_k=5, profit_target=0.04)
-
-# Run single scan
-opportunities = trader.run_single_scan(params)
-print(f"Found {opportunities['gaps_found']} opportunities")
-
-# Start scheduled trading (runs until stopped)
-trader.start_live_trading(params)
+collector = DataCollector(config)
+success = collector.collect_full_dataset(start_date, end_date)
 ```
 
-### Advanced Analysis
-
+#### `GapEngine`
 ```python
-from gappers import PerformanceAnalyzer
-import matplotlib.pyplot as plt
+from gappers.gap_engine import GapEngine
 
-analyzer = PerformanceAnalyzer()
-
-# Create detailed trade analysis plots
-figures = analyzer.create_trade_analysis_plots(
-    trades=results['trades'],
-    save_dir='./analysis_plots'
-)
-
-# Generate interactive dashboard
-dashboard = analyzer.create_performance_dashboard(analysis)
-dashboard.write_html('performance_dashboard.html')
+engine = GapEngine(config)
+gaps_df = engine.calculate_daily_gaps(date)
+top_gaps = engine.get_top_gaps(date, direction="up", limit=10)
 ```
 
-## Security & Compliance
+#### `PortfolioEngine`
+```python
+from gappers.portfolio_engine import PortfolioEngine
 
-### Security Features
-- **No hardcoded secrets** - all credentials via environment variables
-- **Input validation** on all user inputs and API responses
-- **Rate limiting** and request throttling for external APIs
-- **Audit logging** of all trades and system events
-
-### Compliance
-- **SEC Rule 201** compliance for short sale restrictions
-- **Position limits** and risk management controls
-- **Trade reporting** with full audit trail
-- **Data retention** policies for regulatory requirements
-
-### Risk Management
-- **Position sizing** with maximum exposure limits
-- **Sector diversification** to limit concentration risk
-- **Time-based exits** to limit overnight exposure
-- **Circuit breakers** for unusual market conditions
-
-## Development
-
-### Setting up Development Environment
-
-```bash
-# Clone and setup
-git clone https://github.com/yourusername/gappers-trader.git
-cd gappers-trader
-
-# Install with development dependencies
-poetry install --with dev
-
-# Setup pre-commit hooks
-poetry run pre-commit install
-
-# Run development server
-poetry run streamlit run app.py --server.runOnSave true
-```
-
-### Code Quality
-
-The project uses several tools to maintain code quality:
-
-- **Black**: Code formatting
-- **Ruff**: Fast Python linter  
-- **MyPy**: Static type checking
-- **Bandit**: Security vulnerability scanning
-- **Pre-commit**: Git hooks for code quality
-
-```bash
-# Run all quality checks
-poetry run pre-commit run --all-files
-
-# Individual tools
-poetry run black gappers/
-poetry run ruff check gappers/
-poetry run mypy gappers/
-poetry run bandit -r gappers/
+engine = PortfolioEngine(config)
+results = engine.run_backtest(start_date, end_date)
 ```
 
 ## Documentation
 
-- **[API Reference](docs/api.md)**: Complete API documentation
-- **[Strategy Guide](docs/strategy.md)**: Gap trading strategy explanation
-- **[Configuration](docs/configuration.md)**: Detailed configuration options
-- **[Deployment](docs/deployment.md)**: Production deployment guide
-- **[Contributing](CONTRIBUTING.md)**: Development and contribution guidelines
+For detailed documentation, see [README_NEW.md](./gappers_trader/README_NEW.md) in the gappers_trader directory.
 
 ## Contributing
 
-Contributions are welcome! Please see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
-
-### Development Workflow
-
 1. Fork the repository
 2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Make your changes with tests
-4. Run quality checks (`pre-commit run --all-files`)
-5. Commit your changes (`git commit -m 'Add amazing feature'`)
-6. Push to the branch (`git push origin feature/amazing-feature`)
-7. Open a Pull Request
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
 
@@ -430,29 +341,13 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Disclaimer
 
-This software is for educational and research purposes only. Past performance does not guarantee future results. Trading involves substantial risk of loss and is not suitable for all investors. Always consult with a qualified financial advisor before making investment decisions.
-
-The authors and contributors are not responsible for any financial losses incurred through the use of this software.
-
-## Acknowledgments
-
-- **[vectorbt](https://vectorbt.dev/)**: High-performance backtesting framework
-- **[Streamlit](https://streamlit.io/)**: Interactive web application framework  
-- **[Alpaca](https://alpaca.markets/)**: Commission-free trading API
-- **[yfinance](https://github.com/ranaroussi/yfinance)**: Yahoo Finance data access
+This software is for educational and research purposes only. Past performance does not guarantee future results. Trading involves substantial risk of loss and is not suitable for all investors. Please consult with a qualified financial advisor before making any investment decisions.
 
 ## Support
 
-- **Issues**: [GitHub Issues](https://github.com/yourusername/gappers-trader/issues)
-- **Discussions**: [GitHub Discussions](https://github.com/yourusername/gappers-trader/discussions)
-- **Documentation**: [Project Wiki](https://github.com/yourusername/gappers-trader/wiki)
+- Issues: [GitHub Issues](https://github.com/yourusername/GapRunner/issues)
+- Documentation: [Full Documentation](./gappers_trader/README_NEW.md)
 
 ---
 
-<div align="center">
-
 **Built for the trading community**
-
-[Star this repo](https://github.com/yourusername/gappers-trader) • [Report Bug](https://github.com/yourusername/gappers-trader/issues) • [Request Feature](https://github.com/yourusername/gappers-trader/issues)
-
-</div>
