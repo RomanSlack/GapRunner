@@ -1,0 +1,29 @@
+{
+  "name": "Simulation Save 1",
+  "config": {
+    "strategy": {
+      "top_k": 10,
+      "min_gap_pct": 0.02,
+      "max_gap_pct": 0.06,
+      "profit_target_pct": 0.1,
+      "hard_stop_pct": 0.005,
+      "trailing_stop_pct": 0.005,
+      "time_stop_hour": 15,
+      "position_size_usd": 8000,
+      "max_positions": 10,
+      "sector_diversification": true
+    },
+    "costs": {
+      "commission_per_share": 0.005
+    },
+    "backtest": {
+      "initial_capital": 100000,
+      "start_date": "2024-01-10",
+      "end_date": "2024-12-18"
+    }
+  },
+  "results": {},
+  "timestamp": "2025-08-04T21:19:23.923951",
+  "description": "",
+  "tags": []
+}

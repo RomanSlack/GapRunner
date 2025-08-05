@@ -7,7 +7,7 @@
 [![Data Integrity](https://img.shields.io/badge/data-validated-blue.svg)]()
 [![Real-time](https://img.shields.io/badge/execution-real--time-orange.svg)]()
 
-![Backtest Results](/images/screnshot_1.png)
+![Backtest Results](/images/screenshot_2.png)
 
 A production-ready overnight gap trading system implementing momentum-gap strategy with real-time data collection, advanced portfolio simulation, and comprehensive risk management.
 
