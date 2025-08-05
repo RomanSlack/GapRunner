@@ -15,7 +15,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from .config import Config
+from .config_new import Config
 
 warnings.filterwarnings('ignore', category=UserWarning)
 logger = logging.getLogger(__name__)

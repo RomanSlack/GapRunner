@@ -23,6 +23,7 @@ from gappers.data_collector import DataCollector
 from gappers.data_manager import DataManager
 from gappers.gap_engine import GapEngine
 from gappers.universe import UniverseBuilder
+from gappers.simulation_manager import SimulationManager
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -103,6 +104,7 @@ def main():
                 "📊 Data Collection", 
                 "🔍 Gap Analysis",
                 "💼 Portfolio Simulation",
+                "💾 Simulation Manager",
                 "⚙️ Configuration",
                 "📈 System Status"
             ]
@@ -117,6 +119,8 @@ def main():
         show_gap_analysis_page(config, gap_engine, data_manager)
     elif page == "💼 Portfolio Simulation":
         show_portfolio_simulation_page(config, gap_engine, data_manager)
+    elif page == "💾 Simulation Manager":
+        show_simulation_manager_page()
     elif page == "⚙️ Configuration":
         show_configuration_page(config)
     elif page == "📈 System Status":
@@ -418,6 +422,13 @@ def show_portfolio_simulation_page(config: Config, gap_engine: GapEngine, data_m
     st.header("💼 Portfolio Simulation & Backtesting")
     st.markdown("**Full momentum-gap strategy implementation with risk management**")
     
+    # Initialize simulation manager
+    @st.cache_resource
+    def get_simulation_manager():
+        return SimulationManager()
+    
+    sim_manager = get_simulation_manager()
+    
     # Import portfolio engine
     from gappers.portfolio_engine import PortfolioEngine
     
@@ -537,8 +548,174 @@ def show_portfolio_simulation_page(config: Config, gap_engine: GapEngine, data_m
             max_value=datetime.now().date()
         )
     
+    # Save/Load controls
+    st.markdown("---")
+    st.subheader("💾 Save/Load Simulations")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown("**💾 Save Current Setup**")
+        save_name = st.text_input("Save Name", placeholder="My Simulation")
+        save_description = st.text_area("Description (Optional)", placeholder="Description of this simulation setup...")
+        save_tags = st.text_input("Tags (comma-separated)", placeholder="backtesting, strategy1")
+        
+        if st.button("💾 Save Configuration", help="Save current parameters for later use"):
+            if save_name.strip():
+                # Create config dict with current parameters
+                current_config = {
+                    'strategy': {
+                        'top_k': top_k,
+                        'min_gap_pct': min_gap,
+                        'max_gap_pct': max_gap,
+                        'profit_target_pct': profit_target,
+                        'hard_stop_pct': hard_stop,
+                        'trailing_stop_pct': trailing_stop,
+                        'time_stop_hour': time_stop,
+                        'position_size_usd': position_size,
+                        'max_positions': max_positions,
+                        'sector_diversification': sector_div
+                    },
+                    'costs': {
+                        'commission_per_share': commission
+                    },
+                    'backtest': {
+                        'initial_capital': initial_capital,
+                        'start_date': start_date.isoformat(),
+                        'end_date': end_date.isoformat()
+                    }
+                }
+                
+                # Parse tags
+                tags_list = [tag.strip() for tag in save_tags.split(',') if tag.strip()] if save_tags else []
+                
+                # Save configuration (empty results for now)
+                success = sim_manager.save_simulation(
+                    save_name.strip(),
+                    current_config,
+                    {},  # Empty results - just saving config
+                    save_description,
+                    tags_list
+                )
+                
+                if success:
+                    st.success(f"✅ Configuration '{save_name}' saved successfully!")
+                else:
+                    st.error("❌ Failed to save configuration")
+            else:
+                st.error("Please enter a save name")
+    
+    with col2:
+        st.markdown("**📂 Load Saved Simulation**")
+        
+        # List available simulations
+        simulations = sim_manager.list_simulations()
+        
+        if simulations:
+            # Create display options
+            sim_options = {}
+            for sim in simulations:
+                timestamp = datetime.fromisoformat(sim['timestamp']).strftime('%Y-%m-%d %H:%M')
+                display_name = f"{sim['name']} ({timestamp})"
+                sim_options[display_name] = sim['filename']
+            
+            selected_sim = st.selectbox(
+                "Select Simulation",
+                options=list(sim_options.keys()),
+                help="Choose a saved simulation to load"
+            )
+            
+            if selected_sim and st.button("📂 Load Simulation"):
+                filename = sim_options[selected_sim]
+                loaded_save = sim_manager.load_simulation(filename)
+                
+                if loaded_save:
+                    # Update session state with loaded config
+                    st.session_state.loaded_config = loaded_save.config
+                    st.session_state.loaded_results = loaded_save.results
+                    st.success(f"✅ Loaded simulation: {loaded_save.name}")
+                    st.rerun()
+                else:
+                    st.error("❌ Failed to load simulation")
+        else:
+            st.info("No saved simulations found")
+    
+    with col3:
+        st.markdown("**🗂️ Manage Simulations**")
+        
+        if simulations:
+            # Show storage stats
+            stats = sim_manager.get_storage_stats()
+            st.metric("Total Saves", stats['total_simulations'])
+            st.metric("Storage Used", f"{stats['total_size_mb']:.1f} MB")
+            
+            # Delete simulation
+            sim_to_delete = st.selectbox(
+                "Delete Simulation",
+                options=[''] + [sim['name'] for sim in simulations],
+                help="Select a simulation to delete"
+            )
+            
+            if sim_to_delete and st.button("🗑️ Delete", help="Permanently delete selected simulation"):
+                # Find the filename for the selected simulation
+                filename_to_delete = None
+                for sim in simulations:
+                    if sim['name'] == sim_to_delete:
+                        filename_to_delete = sim['filename']
+                        break
+                
+                if filename_to_delete and sim_manager.delete_simulation(filename_to_delete):
+                    st.success(f"✅ Deleted simulation: {sim_to_delete}")
+                    st.rerun()
+                else:
+                    st.error("❌ Failed to delete simulation")
+    
+    # Load saved configuration if available
+    if hasattr(st.session_state, 'loaded_config') and st.session_state.loaded_config:
+        loaded_config = st.session_state.loaded_config
+        
+        st.info("🔄 Configuration loaded from saved simulation. Parameters updated above.")
+        
+        # Update parameters from loaded config
+        if 'strategy' in loaded_config:
+            strategy = loaded_config['strategy']
+            top_k = strategy.get('top_k', top_k)
+            min_gap = strategy.get('min_gap_pct', min_gap)
+            max_gap = strategy.get('max_gap_pct', max_gap)
+            profit_target = strategy.get('profit_target_pct', profit_target)
+            hard_stop = strategy.get('hard_stop_pct', hard_stop)
+            trailing_stop = strategy.get('trailing_stop_pct', trailing_stop)
+            time_stop = strategy.get('time_stop_hour', time_stop)
+            position_size = strategy.get('position_size_usd', position_size)
+            max_positions = strategy.get('max_positions', max_positions)
+            sector_div = strategy.get('sector_diversification', sector_div)
+        
+        if 'costs' in loaded_config:
+            commission = loaded_config['costs'].get('commission_per_share', commission)
+        
+        if 'backtest' in loaded_config:
+            backtest_config = loaded_config['backtest']
+            initial_capital = backtest_config.get('initial_capital', initial_capital)
+            if 'start_date' in backtest_config:
+                start_date = datetime.fromisoformat(backtest_config['start_date']).date()
+            if 'end_date' in backtest_config:
+                end_date = datetime.fromisoformat(backtest_config['end_date']).date()
+        
+        # Clear the loaded config to prevent reloading
+        del st.session_state.loaded_config
+    
+    st.markdown("---")
+    
     # Run backtest button
-    if st.button("🚀 Run Backtest", type="primary", use_container_width=True):
+    col1, col2 = st.columns([3, 1])
+    
+    with col1:
+        run_backtest = st.button("🚀 Run Backtest", type="primary", use_container_width=True)
+    
+    with col2:
+        save_after_run = st.checkbox("💾 Save Results", help="Automatically save results after successful backtest")
+    
+    if run_backtest:
         if start_date >= end_date:
             st.error("Start date must be before end date")
         else:
@@ -569,7 +746,49 @@ def show_portfolio_simulation_page(config: Config, gap_engine: GapEngine, data_m
                     
                     # Store results in session state
                     st.session_state.backtest_results = results
-                    st.success("✅ Backtest completed successfully!")
+                    
+                    # Auto-save results if requested
+                    if save_after_run:
+                        auto_save_name = f"Backtest_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                        
+                        current_config = {
+                            'strategy': {
+                                'top_k': top_k,
+                                'min_gap_pct': min_gap,
+                                'max_gap_pct': max_gap,
+                                'profit_target_pct': profit_target,
+                                'hard_stop_pct': hard_stop,
+                                'trailing_stop_pct': trailing_stop,
+                                'time_stop_hour': time_stop,
+                                'position_size_usd': position_size,
+                                'max_positions': max_positions,
+                                'sector_diversification': sector_div
+                            },
+                            'costs': {
+                                'commission_per_share': commission
+                            },
+                            'backtest': {
+                                'initial_capital': initial_capital,
+                                'start_date': start_date.isoformat(),
+                                'end_date': end_date.isoformat()
+                            }
+                        }
+                        
+                        save_success = sim_manager.save_simulation(
+                            auto_save_name,
+                            current_config,
+                            results,
+                            f"Automatic save of backtest results from {start_date} to {end_date}",
+                            ['auto-save', 'backtest']
+                        )
+                        
+                        if save_success:
+                            st.success(f"✅ Backtest completed and saved as '{auto_save_name}'!")
+                        else:
+                            st.success("✅ Backtest completed successfully!")
+                            st.warning("⚠️ Auto-save failed, but results are available below")
+                    else:
+                        st.success("✅ Backtest completed successfully!")
                     
                 except Exception as e:
                     st.error(f"❌ Backtest failed: {e}")
@@ -1022,6 +1241,208 @@ def display_backtest_results(results: Dict):
             )
         else:
             st.warning("No portfolio data available")
+
+
+def show_simulation_manager_page():
+    """Show simulation manager page."""
+    st.header("💾 Simulation Manager")
+    st.markdown("**Manage saved simulation configurations and results**")
+    
+    # Initialize simulation manager
+    @st.cache_resource
+    def get_simulation_manager():
+        return SimulationManager()
+    
+    sim_manager = get_simulation_manager()
+    
+    # Get all saved simulations
+    simulations = sim_manager.list_simulations()
+    
+    # Storage stats
+    stats = sim_manager.get_storage_stats()
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        st.metric("Total Simulations", stats['total_simulations'])
+    
+    with col2:
+        st.metric("Storage Used", f"{stats['total_size_mb']:.1f} MB")
+    
+    with col3:
+        st.metric("JSON Files", stats['json_files'])
+    
+    with col4:
+        st.metric("Pickle Files", stats['pickle_files'])
+    
+    if simulations:
+        st.markdown("---")
+        st.subheader("📋 Saved Simulations")
+        
+        # Create tabs for different views
+        tab1, tab2, tab3 = st.tabs(["📊 Simulation List", "🔍 Details", "🔧 Management"])
+        
+        with tab1:
+            # Create a DataFrame for display
+            display_data = []
+            for sim in simulations:
+                timestamp = datetime.fromisoformat(sim['timestamp'])
+                display_data.append({
+                    'Name': sim['name'],
+                    'Date': timestamp.strftime('%Y-%m-%d'),
+                    'Time': timestamp.strftime('%H:%M:%S'),
+                    'Size (MB)': f"{sim['size_mb']:.2f}",
+                    'Format': sim['format'].upper(),
+                    'Tags': ', '.join(sim['tags']) if sim['tags'] else 'None',
+                    'Description': sim['description'][:50] + '...' if len(sim['description']) > 50 else sim['description']
+                })
+            
+            sim_df = pd.DataFrame(display_data)
+            st.dataframe(sim_df, use_container_width=True)
+        
+        with tab2:
+            # Detailed view of selected simulation
+            sim_names = [f"{sim['name']} ({datetime.fromisoformat(sim['timestamp']).strftime('%Y-%m-%d %H:%M')})" for sim in simulations]
+            selected_sim_name = st.selectbox("Select Simulation for Details", sim_names)
+            
+            if selected_sim_name:
+                # Find the selected simulation
+                selected_index = sim_names.index(selected_sim_name)
+                selected_sim = simulations[selected_index]
+                
+                # Load the full simulation
+                loaded_sim = sim_manager.load_simulation(selected_sim['filename'])
+                
+                if loaded_sim:
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.subheader("📊 Configuration")
+                        if loaded_sim.config:
+                            st.json(loaded_sim.config)
+                        else:
+                            st.info("No configuration data available")
+                    
+                    with col2:
+                        st.subheader("📈 Results Summary")
+                        if loaded_sim.results:
+                            # Show key metrics if available
+                            if 'final_value' in loaded_sim.results:
+                                st.metric("Final Value", f"${loaded_sim.results['final_value']:,.0f}")
+                            if 'total_return_pct' in loaded_sim.results:
+                                st.metric("Total Return", f"{loaded_sim.results['total_return_pct']:.1%}")
+                            if 'num_trades' in loaded_sim.results:
+                                st.metric("Total Trades", loaded_sim.results['num_trades'])
+                            if 'win_rate' in loaded_sim.results:
+                                st.metric("Win Rate", f"{loaded_sim.results['win_rate']:.1%}")
+                            
+                            # Show full results
+                            with st.expander("🔍 Full Results"):
+                                st.json({k: str(v) for k, v in loaded_sim.results.items() if not isinstance(v, pd.DataFrame)})
+                        else:
+                            st.info("No results data available (configuration only)")
+                    
+                    # Action buttons
+                    st.markdown("---")
+                    col1, col2, col3 = st.columns(3)
+                    
+                    with col1:
+                        if st.button("🔄 Load Configuration", key=f"load_{selected_sim['filename']}"):
+                            st.session_state.loaded_config = loaded_sim.config
+                            st.success("✅ Configuration loaded! Go to Portfolio Simulation to apply it.")
+                    
+                    with col2:
+                        export_filename = st.text_input("Export filename", value=f"{loaded_sim.name}_export.json")
+                        if st.button("📤 Export", key=f"export_{selected_sim['filename']}"):
+                            if export_filename:
+                                if sim_manager.export_simulation(selected_sim['filename'], export_filename):
+                                    st.success(f"✅ Exported to {export_filename}")
+                                else:
+                                    st.error("❌ Export failed")
+                    
+                    with col3:
+                        if st.button("🗑️ Delete", key=f"delete_{selected_sim['filename']}", type="secondary"):
+                            if sim_manager.delete_simulation(selected_sim['filename']):
+                                st.success("✅ Simulation deleted")
+                                st.rerun()
+                            else:
+                                st.error("❌ Delete failed")
+                else:
+                    st.error("Failed to load simulation details")
+        
+        with tab3:
+            # Management operations
+            st.subheader("🔧 Management Operations")
+            
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("**🧹 Cleanup Operations**")
+                
+                keep_count = st.number_input(
+                    "Keep most recent simulations",
+                    min_value=1,
+                    max_value=100,
+                    value=20,
+                    help="Number of most recent simulations to keep"
+                )
+                
+                if st.button("🧹 Cleanup Old Saves"):
+                    deleted_count = sim_manager.cleanup_old_saves(keep_count)
+                    if deleted_count > 0:
+                        st.success(f"✅ Deleted {deleted_count} old simulation saves")
+                        st.rerun()
+                    else:
+                        st.info("No old saves to clean up")
+            
+            with col2:
+                st.markdown("**📥 Import/Export**")
+                
+                # Import simulation
+                uploaded_file = st.file_uploader(
+                    "Import Simulation",
+                    type=['json'],
+                    help="Upload a previously exported simulation file"
+                )
+                
+                if uploaded_file is not None:
+                    try:
+                        # Save uploaded file temporarily
+                        temp_path = f"temp_import_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+                        with open(temp_path, 'wb') as f:
+                            f.write(uploaded_file.getvalue())
+                        
+                        # Import the simulation
+                        if sim_manager.import_simulation(temp_path):
+                            st.success("✅ Simulation imported successfully")
+                            # Clean up temp file
+                            Path(temp_path).unlink(missing_ok=True)
+                            st.rerun()
+                        else:
+                            st.error("❌ Import failed")
+                            Path(temp_path).unlink(missing_ok=True)
+                    except Exception as e:
+                        st.error(f"❌ Import error: {e}")
+                
+                # Export all simulations
+                if st.button("📤 Export All Simulations"):
+                    st.info("This feature will be implemented in a future update")
+    
+    else:
+        st.info("🎯 No saved simulations found. Run a backtest in the Portfolio Simulation page to create your first save!")
+        
+        # Show quick start guide
+        st.markdown("---")
+        st.subheader("🚀 Quick Start Guide")
+        
+        st.markdown("""
+        1. **Go to Portfolio Simulation** page
+        2. **Configure your strategy** parameters
+        3. **Set backtest period** (start and end dates)
+        4. **Enter a save name** and click "💾 Save Configuration"
+        5. **Run backtest** with "💾 Save Results" checked
+        6. **Return here** to manage your saved simulations
+        """)
 
 
 if __name__ == "__main__":

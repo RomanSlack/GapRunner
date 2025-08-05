@@ -13,7 +13,7 @@ import pyarrow.parquet as pq
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
-from .config import Config
+from .config_new import Config
 
 warnings.filterwarnings('ignore', category=UserWarning)
 logger = logging.getLogger(__name__)
@@ -131,18 +131,24 @@ class DataManager:
     def _load_symbol_data(self, symbol: str, start_date: datetime, 
                          end_date: datetime, columns: List[str]) -> Optional[pd.DataFrame]:
         """Load data for a single symbol from partitioned storage."""
-        # Look for files in the appropriate year directories
-        years = range(start_date.year, end_date.year + 1)
-        
         symbol_data_frames = []
         
-        for year in years:
-            year_dir = self.ohlcv_dir / f"date={year}"
-            if not year_dir.exists():
+        # Look for files in multiple locations due to inconsistent partitioning
+        search_locations = [
+            # Current partitioned structure - check all possible year directories
+            *[self.ohlcv_dir / f"date={year}" for year in range(start_date.year, end_date.year + 1)],
+            # Fallback to cache directory
+            self.data_dir / "cache",
+            # Direct ohlcv directory (non-partitioned)
+            self.ohlcv_dir
+        ]
+        
+        for search_dir in search_locations:
+            if not search_dir.exists():
                 continue
             
-            # Find files for this symbol in this year
-            symbol_files = list(year_dir.glob(f"{symbol}_*.parquet"))
+            # Find files for this symbol
+            symbol_files = list(search_dir.glob(f"{symbol}_*.parquet"))
             
             for file_path in symbol_files:
                 try:
@@ -150,12 +156,16 @@ class DataManager:
                     if self._file_overlaps_date_range(file_path, start_date, end_date):
                         df = pd.read_parquet(file_path, columns=columns)
                         if not df.empty:
+                            # Ensure index is datetime
+                            if not isinstance(df.index, pd.DatetimeIndex):
+                                df.index = pd.to_datetime(df.index)
                             symbol_data_frames.append(df)
                 except Exception as e:
-                    logger.warning(f"Failed to read {file_path}: {e}")
+                    logger.debug(f"Failed to read {file_path}: {e}")
                     continue
         
         if not symbol_data_frames:
+            logger.debug(f"No data found for {symbol} in date range {start_date} to {end_date}")
             return None
         
         # Combine all data frames
@@ -165,7 +175,15 @@ class DataManager:
         combined_df = combined_df[~combined_df.index.duplicated(keep='first')]
         combined_df = combined_df.sort_index()
         
-        # Filter to exact date range
+        # Filter to exact date range - ensure timezone consistency
+        if combined_df.index.tz is not None:
+            combined_df.index = combined_df.index.tz_convert(None)
+        
+        if hasattr(start_date, 'tz') and start_date.tz is not None:
+            start_date = start_date.replace(tzinfo=None)
+        if hasattr(end_date, 'tz') and end_date.tz is not None:
+            end_date = end_date.replace(tzinfo=None)
+        
         mask = (combined_df.index >= start_date) & (combined_df.index <= end_date)
         filtered_df = combined_df[mask]
         

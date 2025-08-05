@@ -92,6 +92,12 @@ class PortfolioEngine:
         console.print(f"Period: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
         console.print(f"Strategy: Top {self.top_k} gaps, ${self.position_size_usd:,} per position")
         
+        # Ensure dates are timezone-naive for consistent handling
+        if hasattr(start_date, 'tz') and start_date.tz is not None:
+            start_date = start_date.tz_localize(None)
+        if hasattr(end_date, 'tz') and end_date.tz is not None:
+            end_date = end_date.tz_localize(None)
+        
         # Reset portfolio state
         self.cash = self.initial_capital
         self.open_trades = []

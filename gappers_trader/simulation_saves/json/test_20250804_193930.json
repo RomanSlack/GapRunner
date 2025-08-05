@@ -1,0 +1,29 @@
+{
+  "name": "test",
+  "config": {
+    "strategy": {
+      "top_k": 10,
+      "min_gap_pct": 0.02,
+      "max_gap_pct": 0.06,
+      "profit_target_pct": 0.1,
+      "hard_stop_pct": 0.005,
+      "trailing_stop_pct": 0.005,
+      "time_stop_hour": 15,
+      "position_size_usd": 10000,
+      "max_positions": 10,
+      "sector_diversification": true
+    },
+    "costs": {
+      "commission_per_share": 0.005
+    },
+    "backtest": {
+      "initial_capital": 100000,
+      "start_date": "2022-01-01",
+      "end_date": "2022-01-31"
+    }
+  },
+  "results": {},
+  "timestamp": "2025-08-04T19:39:30.322425",
+  "description": "",
+  "tags": []
+}

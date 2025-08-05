@@ -14,7 +14,7 @@ from pandas import DataFrame
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 
-from .config import Config
+from .config_new import Config
 from .data_providers import DataProviderManager
 
 warnings.filterwarnings('ignore', category=UserWarning)

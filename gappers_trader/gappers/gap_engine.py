@@ -11,7 +11,7 @@ from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn
 from rich.table import Table
 
-from .config import Config
+from .config_new import Config
 from .data_manager import DataManager
 
 warnings.filterwarnings('ignore', category=UserWarning)

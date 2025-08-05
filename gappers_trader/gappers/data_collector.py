@@ -25,7 +25,7 @@ import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
-from .config import Config
+from .config_new import Config
 from .universe import UniverseBuilder
 
 warnings.filterwarnings('ignore', category=UserWarning)
