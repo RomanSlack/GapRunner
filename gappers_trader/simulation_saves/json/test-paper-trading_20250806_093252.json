@@ -1,0 +1,40 @@
+{
+  "name": "test-paper-trading",
+  "config": {
+    "strategy": {
+      "top_k": 5,
+      "min_gap_pct": 0.02,
+      "max_gap_pct": 0.06,
+      "profit_target_pct": 0.1,
+      "hard_stop_pct": 0.005,
+      "trailing_stop_pct": 0.005,
+      "time_stop_hour": 15,
+      "position_size_usd": 10000,
+      "max_positions": 10,
+      "sector_diversification": false
+    },
+    "costs": {
+      "commission_per_share": 0.001,
+      "slippage_bps": 5,
+      "borrowing_rate": 0.02,
+      "spread_cost_bps": 10
+    },
+    "backtest": {
+      "initial_capital": 100000
+    },
+    "paper_trading": {
+      "trading_start": "09:15",
+      "trading_end": "14:45",
+      "gap_scan_time": "09:00",
+      "auto_scan_enabled": false,
+      "auto_trade_enabled": true
+    },
+    "config_type": "paper_trading"
+  },
+  "results": {},
+  "timestamp": "2025-08-06T09:32:52.307036",
+  "description": "Paper trading configuration created on 2025-08-06",
+  "tags": [
+    "paper-trading"
+  ]
+}

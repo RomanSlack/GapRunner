@@ -104,6 +104,7 @@ def main():
                 "📊 Data Collection", 
                 "🔍 Gap Analysis",
                 "💼 Portfolio Simulation",
+                "🔖 Paper Trading",
                 "💾 Simulation Manager",
                 "⚙️ Configuration",
                 "📈 System Status"
@@ -119,6 +120,8 @@ def main():
         show_gap_analysis_page(config, gap_engine, data_manager)
     elif page == "💼 Portfolio Simulation":
         show_portfolio_simulation_page(config, gap_engine, data_manager)
+    elif page == "🔖 Paper Trading":
+        show_paper_trading_page()
     elif page == "💾 Simulation Manager":
         show_simulation_manager_page()
     elif page == "⚙️ Configuration":
@@ -799,6 +802,667 @@ def show_portfolio_simulation_page(config: Config, gap_engine: GapEngine, data_m
         display_backtest_results(st.session_state.backtest_results)
 
 
+def show_paper_trading_page():
+    """Show paper trading page with strategy-based trading using saved configurations."""
+    st.header("🔖 Paper Trading")
+    st.markdown("**Execute gap trading strategies in real-time with paper money**")
+    
+    try:
+        import alpaca_trade_api as tradeapi
+        import os
+        from dotenv import load_dotenv
+        from datetime import datetime, timedelta
+        
+        # Load environment variables
+        load_dotenv()
+    except ImportError as e:
+        missing_lib = "alpaca-trade-api" if "alpaca" in str(e) else "python-dotenv"
+        st.error(f"❌ {missing_lib} library not installed. Please run: pip install {missing_lib}")
+        return
+    
+    # Get credentials from environment variables
+    api_key = os.getenv('ALPACA_API_KEY', '')
+    api_secret = os.getenv('ALPACA_API_SECRET', '')
+    base_url = "https://paper-api.alpaca.markets"
+    
+    if not api_key or not api_secret:
+        st.error("⚠️ Alpaca API credentials not found in .env file")
+        st.info("💡 Please add ALPACA_API_KEY and ALPACA_API_SECRET to your .env file")
+        return
+    
+    # Initialize components
+    try:
+        api = tradeapi.REST(api_key, api_secret, base_url, api_version='v2')
+        
+        # Initialize simulation manager to load saved configs
+        from gappers.simulation_manager import SimulationManager
+        sim_manager = SimulationManager()
+        
+        # Load system components for gap detection
+        config, data_collector, data_manager, gap_engine, universe_builder = load_system_components()
+        
+    except Exception as e:
+        st.error(f"❌ Failed to initialize components: {e}")
+        return
+    
+    # Paper Trading Configuration Section
+    st.subheader("⚙️ Paper Trading Setup")
+    
+    tabs = st.tabs(["📋 Configuration", "🔍 Gap Scanner", "🚀 Strategy Execution"])
+    
+    with tabs[0]:  # Configuration Only
+        col1, col2 = st.columns([1, 1])
+        
+        with col1:
+            st.markdown("**📂 Load Saved Configuration**")
+            
+            # Load saved configurations
+            simulations = sim_manager.list_simulations()
+            
+            if simulations:
+                # Create display options for saved configs
+                sim_options = {"Select Configuration": None}
+                for sim in simulations:
+                    timestamp = datetime.fromisoformat(sim['timestamp']).strftime('%Y-%m-%d %H:%M')
+                    display_name = f"{sim['name']} ({timestamp})"
+                    sim_options[display_name] = sim['filename']
+                
+                selected_config = st.selectbox(
+                    "Choose Configuration",
+                    options=list(sim_options.keys()),
+                    help="Select a saved configuration to load"
+                )
+                
+                if st.button("🔄 Refresh Configs"):
+                    st.rerun()
+                
+                # Load selected configuration
+                if selected_config and selected_config != "Select Configuration":
+                    filename = sim_options[selected_config]
+                    loaded_save = sim_manager.load_simulation(filename)
+                    
+                    if loaded_save and loaded_save.config:
+                        st.session_state.paper_trading_config = loaded_save.config
+                        st.success(f"✅ Loaded: {loaded_save.name}")
+                    else:
+                        st.error("❌ Failed to load configuration")
+            else:
+                st.info("💡 No saved configurations found.")
+        
+        with col2:
+            st.markdown("**⚙️ Current Configuration Status**")
+            
+            current_config = st.session_state.get('paper_trading_config')
+            if current_config:
+                strategy_config = current_config.get('strategy', {})
+                timing_config = current_config.get('paper_trading', {})
+                costs_config = current_config.get('costs', {})
+                backtest_config = current_config.get('backtest', {})
+                
+                st.success("✅ Configuration Loaded")
+                
+                # Create expandable detailed view
+                with st.expander("📋 Configuration Details", expanded=False):
+                    col1, col2 = st.columns(2)
+                    
+                    with col1:
+                        st.markdown("**Strategy**")
+                        st.metric("Gap Range", f"{strategy_config.get('min_gap_pct', 0)*100:.1f}% - {strategy_config.get('max_gap_pct', 0)*100:.1f}%")
+                        st.metric("Top K Gaps", strategy_config.get('top_k', 0))
+                        st.metric("Position Size", f"${strategy_config.get('position_size_usd', 0):,}")
+                        st.metric("Max Positions", strategy_config.get('max_positions', 0))
+                        
+                        st.markdown("**Exit Rules**")
+                        st.metric("Profit Target", f"{strategy_config.get('profit_target_pct', 0)*100:.1f}%")
+                        st.metric("Hard Stop", f"{strategy_config.get('hard_stop_pct', 0)*100:.1f}%")
+                        st.metric("Trailing Stop", f"{strategy_config.get('trailing_stop_pct', 0)*100:.1f}%")
+                        st.metric("Time Stop", f"{strategy_config.get('time_stop_hour', 15)}:00")
+                    
+                    with col2:
+                        st.markdown("**Trading Costs**")
+                        st.metric("Commission/Share", f"${costs_config.get('commission_per_share', 0):.4f}")
+                        st.metric("Slippage", f"{costs_config.get('slippage_bps', 0)} bps")
+                        st.metric("Borrowing Rate", f"{costs_config.get('borrowing_rate', 0)*100:.2f}%")
+                        st.metric("Spread Cost", f"{costs_config.get('spread_cost_bps', 0)} bps")
+                        
+                        st.markdown("**Timing**")
+                        st.metric("Trading Hours", f"{timing_config.get('trading_start', 'Not set')} - {timing_config.get('trading_end', 'Not set')}")
+                        st.metric("Gap Scan Time", timing_config.get('gap_scan_time', 'Not set'))
+                        st.metric("Auto Scan", "✅" if timing_config.get('auto_scan_enabled', False) else "❌")
+                        st.metric("Auto Trade", "✅" if timing_config.get('auto_trade_enabled', False) else "❌")
+                
+                # Summary metrics always visible
+                st.metric("Gap Range", f"{strategy_config.get('min_gap_pct', 0)*100:.1f}% - {strategy_config.get('max_gap_pct', 0)*100:.1f}%")
+                st.metric("Position Size", f"${strategy_config.get('position_size_usd', 0):,}")
+                st.metric("Trading Hours", f"{timing_config.get('trading_start', 'Not set')} - {timing_config.get('trading_end', 'Not set')}")
+            else:
+                st.warning("⚠️ No Configuration Loaded")
+                st.info("Load a saved configuration or create one below")
+        
+        # Create new configuration section
+        st.markdown("---")
+        st.markdown("**🔧 Create New Configuration**")
+        
+        with st.expander("Create New Paper Trading Configuration", expanded=True):
+            # Load existing config if available
+            existing_config = st.session_state.get('paper_trading_config', {})
+            strategy_config = existing_config.get('strategy', {})
+            timing_config = existing_config.get('paper_trading', {})
+            costs_config = existing_config.get('costs', {})
+            backtest_config = existing_config.get('backtest', {})
+            
+            # Strategy Parameters - COMPLETE from Portfolio Simulation
+            st.subheader("🎯 Strategy Parameters")
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                st.markdown("**Entry Rules**")
+                top_k = st.number_input(
+                    "Top K Gaps", 
+                    value=strategy_config.get('top_k', 5), 
+                    min_value=1, max_value=50,
+                    help="Number of top-ranked gap stocks to trade each day"
+                )
+                min_gap = st.number_input(
+                    "Min Gap (%)", 
+                    value=strategy_config.get('min_gap_pct', 0.02) * 100, 
+                    min_value=0.1, max_value=10.0,
+                    help="Minimum overnight gap percentage required to enter a trade"
+                ) / 100
+                max_gap = st.number_input(
+                    "Max Gap (%)", 
+                    value=strategy_config.get('max_gap_pct', 0.15) * 100, 
+                    min_value=5.0, max_value=50.0,
+                    help="Maximum overnight gap percentage allowed"
+                ) / 100
+                position_size = st.number_input(
+                    "Position Size ($)", 
+                    value=strategy_config.get('position_size_usd', 1000), 
+                    min_value=100, max_value=50000,
+                    help="Dollar amount invested in each position"
+                )
+            
+            with col2:
+                st.markdown("**Exit Rules**")
+                profit_target = st.number_input(
+                    "Profit Target (%)", 
+                    value=strategy_config.get('profit_target_pct', 0.08) * 100, 
+                    min_value=1.0, max_value=50.0,
+                    help="Target profit percentage to automatically close position"
+                ) / 100
+                hard_stop = st.number_input(
+                    "Hard Stop Loss (%)", 
+                    value=strategy_config.get('hard_stop_pct', 0.05) * 100, 
+                    min_value=0.5, max_value=20.0,
+                    help="Maximum loss percentage before closing position"
+                ) / 100
+                trailing_stop = st.number_input(
+                    "Trailing Stop (%)", 
+                    value=strategy_config.get('trailing_stop_pct', 0.03) * 100, 
+                    min_value=0.5, max_value=10.0,
+                    help="Trailing stop percentage from session high"
+                ) / 100
+                time_stop = st.number_input(
+                    "Time Stop (Hour)", 
+                    value=strategy_config.get('time_stop_hour', 15), 
+                    min_value=13, max_value=16,
+                    help="Hour (24h format) to force-close all positions"
+                )
+            
+            with col3:
+                st.markdown("**Risk Management**")
+                max_positions = st.number_input(
+                    "Max Positions", 
+                    value=strategy_config.get('max_positions', 5), 
+                    min_value=1, max_value=20,
+                    help="Maximum number of simultaneous open positions"
+                )
+                initial_capital = st.number_input(
+                    "Initial Capital ($)", 
+                    value=backtest_config.get('initial_capital', 100000), 
+                    min_value=10000, max_value=1000000,
+                    help="Starting portfolio value for tracking purposes"
+                )
+                sector_div = st.checkbox(
+                    "Sector Diversification", 
+                    value=strategy_config.get('sector_diversification', False),
+                    help="Limit positions per sector to reduce concentration risk"
+                )
+                commission = st.number_input(
+                    "Commission/Share ($)", 
+                    value=costs_config.get('commission_per_share', 0.001), 
+                    min_value=0.0, max_value=0.01, 
+                    format="%.4f",
+                    help="Brokerage commission charged per share traded"
+                )
+            
+            # Costs Configuration - COMPLETE from Portfolio Simulation
+            st.subheader("💰 Trading Costs")
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                slippage_bps = st.number_input(
+                    "Slippage (bps)", 
+                    value=costs_config.get('slippage_bps', 5), 
+                    min_value=0, max_value=50,
+                    help="Expected slippage in basis points (1 bp = 0.01%)"
+                )
+            
+            with col2:
+                borrowing_rate = st.number_input(
+                    "Borrowing Rate (%)", 
+                    value=costs_config.get('borrowing_rate', 0.02) * 100, 
+                    min_value=0.0, max_value=10.0,
+                    help="Annual borrowing rate for short positions"
+                ) / 100
+            
+            with col3:
+                spread_cost = st.number_input(
+                    "Spread Cost (bps)", 
+                    value=costs_config.get('spread_cost_bps', 10), 
+                    min_value=0, max_value=100,
+                    help="Expected bid-ask spread cost in basis points"
+                )
+            
+            # Paper Trading Specific Configuration
+            st.subheader("⏰ Paper Trading Timing")
+            col1, col2 = st.columns(2)
+            
+            with col1:
+                st.markdown("**Trading Hours**")
+                trading_start = st.time_input(
+                    "Trading Start Time",
+                    value=datetime.strptime(timing_config.get('trading_start', '09:35'), '%H:%M').time(),
+                    help="Earliest time to place trades"
+                )
+                
+                trading_end = st.time_input(
+                    "Trading End Time", 
+                    value=datetime.strptime(timing_config.get('trading_end', '15:30'), '%H:%M').time(),
+                    help="Latest time to place new trades"
+                )
+            
+            with col2:
+                st.markdown("**Automation Settings**")
+                gap_scan_time = st.time_input(
+                    "Daily Gap Scan Time",
+                    value=datetime.strptime(timing_config.get('gap_scan_time', '09:35'), '%H:%M').time(),
+                    help="Time to automatically scan for gap opportunities"
+                )
+                
+                auto_scan_enabled = st.checkbox(
+                    "Enable Automatic Gap Scanning",
+                    value=timing_config.get('auto_scan_enabled', False),
+                    help="Automatically scan for gaps at specified time"
+                )
+                
+                auto_trade_enabled = st.checkbox(
+                    "Enable Automatic Trading",
+                    value=timing_config.get('auto_trade_enabled', False),
+                    help="Automatically execute trades on qualifying gaps"
+                )
+            
+            # Save Configuration
+            st.markdown("---")
+            col1, col2, col3 = st.columns(3)
+            
+            with col1:
+                config_name = st.text_input("Configuration Name", placeholder="My Paper Trading Config")
+            
+            with col2:
+                config_description = st.text_area("Description (Optional)", placeholder="Strategy description...")
+            
+            with col3:
+                config_tags = st.text_input("Tags (comma-separated)", placeholder="paper-trading, gaps")
+                
+                st.markdown("<br>", unsafe_allow_html=True)
+                if st.button("💾 Save Configuration", type="primary"):
+                    if config_name.strip():
+                        # Create COMPLETE configuration dictionary
+                        paper_config = {
+                            'strategy': {
+                                'top_k': top_k,
+                                'min_gap_pct': min_gap,
+                                'max_gap_pct': max_gap,
+                                'profit_target_pct': profit_target,
+                                'hard_stop_pct': hard_stop,
+                                'trailing_stop_pct': trailing_stop,
+                                'time_stop_hour': time_stop,
+                                'position_size_usd': position_size,
+                                'max_positions': max_positions,
+                                'sector_diversification': sector_div
+                            },
+                            'costs': {
+                                'commission_per_share': commission,
+                                'slippage_bps': slippage_bps,
+                                'borrowing_rate': borrowing_rate,
+                                'spread_cost_bps': spread_cost
+                            },
+                            'backtest': {
+                                'initial_capital': initial_capital
+                            },
+                            'paper_trading': {
+                                'trading_start': trading_start.strftime('%H:%M'),
+                                'trading_end': trading_end.strftime('%H:%M'),
+                                'gap_scan_time': gap_scan_time.strftime('%H:%M'),
+                                'auto_scan_enabled': auto_scan_enabled,
+                                'auto_trade_enabled': auto_trade_enabled
+                            },
+                            'config_type': 'paper_trading'
+                        }
+                        
+                        # Parse tags
+                        tags_list = [tag.strip() for tag in config_tags.split(',') if tag.strip()] if config_tags else ['paper-trading']
+                        
+                        # Save configuration
+                        success = sim_manager.save_simulation(
+                            config_name.strip(),
+                            paper_config,
+                            {},  # No results for config-only save
+                            config_description.strip() if config_description.strip() else f"Paper trading configuration created on {datetime.now().strftime('%Y-%m-%d')}",
+                            tags_list
+                        )
+                        
+                        if success:
+                            st.session_state.paper_trading_config = paper_config
+                            st.success(f"✅ Configuration '{config_name}' saved successfully!")
+                        else:
+                            st.error("❌ Failed to save configuration")
+                    else:
+                        st.error("Please enter a configuration name")
+    
+    with tabs[1]:  # Gap Scanner Only
+        st.markdown("**🔍 Gap Opportunity Scanner**")
+        
+        # Check if config is loaded
+        strategy_config = st.session_state.get('paper_trading_config', {}).get('strategy', {})
+        if not strategy_config:
+            st.warning("⚠️ Load a configuration first to enable gap scanning")
+            return
+        
+        # Gap scanning controls
+        col1, col2 = st.columns([3, 1])
+        
+        with col1:
+            scan_date = st.date_input(
+                "Scan Date",
+                value=datetime.now().date(),
+                help="Date to scan for gap opportunities"
+            )
+        
+        with col2:
+            st.markdown("<br>", unsafe_allow_html=True)
+            scan_gaps = st.button("🔍 Scan for Gaps", type="primary")
+        
+        # Handle gap scanning
+        current_gaps = None
+        
+        if scan_gaps:
+            with st.spinner("Scanning for gap opportunities using project's gap engine..."):
+                try:
+                    scan_datetime = datetime.combine(scan_date, datetime.min.time())
+                    gaps_df = gap_engine.calculate_daily_gaps(scan_datetime)
+                    
+                    if not gaps_df.empty:
+                        # Filter gaps based on strategy criteria
+                        min_gap = strategy_config.get('min_gap_pct', 0.02)
+                        max_gap = strategy_config.get('max_gap_pct', 0.15)
+                        top_k = strategy_config.get('top_k', 5)
+                        
+                        # Filter by gap size
+                        filtered_gaps = gaps_df[
+                            (abs(gaps_df['gap_pct']) >= min_gap) & 
+                            (abs(gaps_df['gap_pct']) <= max_gap)
+                        ]
+                        
+                        # Sort by absolute gap size (largest gaps first)
+                        filtered_gaps = filtered_gaps.reindex(filtered_gaps['gap_pct'].abs().sort_values(ascending=False).index)
+                        
+                        # Take top K
+                        current_gaps = filtered_gaps.head(top_k)
+                        st.session_state.current_gaps = current_gaps  # Store for execution tab
+                        
+                        if not current_gaps.empty:
+                            st.success(f"✅ Found {len(current_gaps)} qualifying gap opportunities")
+                            display_gaps_table(current_gaps)
+                            
+                            # Show timing info
+                            timing_config = st.session_state.get('paper_trading_config', {}).get('paper_trading', {})
+                            if timing_config:
+                                current_time = datetime.now().time()
+                                trading_start = datetime.strptime(timing_config.get('trading_start', '09:35'), '%H:%M').time()
+                                trading_end = datetime.strptime(timing_config.get('trading_end', '15:30'), '%H:%M').time()
+                                
+                                if trading_start <= current_time <= trading_end:
+                                    st.success(f"🟢 Within trading hours ({timing_config.get('trading_start')} - {timing_config.get('trading_end')})")
+                                else:
+                                    st.warning(f"🟡 Outside trading hours ({timing_config.get('trading_start')} - {timing_config.get('trading_end')})")
+                        else:
+                            st.warning("No gaps found matching your strategy criteria")
+                            st.info(f"📊 Strategy filters: {min_gap*100:.1f}% - {max_gap*100:.1f}% gap range, top {top_k} positions")
+                    else:
+                        st.warning(f"No gaps found for {scan_date.strftime('%Y-%m-%d')}")
+                        st.info("💡 Try a different date or check if market data is available")
+                        
+                except Exception as e:
+                    st.error(f"❌ Gap scanning failed: {e}")
+                    st.info("💡 Make sure the gap engine has data for the selected date")
+    
+    with tabs[2]:  # Strategy Execution Only
+        st.markdown("**🚀 Strategy Execution & Trading**")
+        
+        # Check if config and gaps are available
+        strategy_config = st.session_state.get('paper_trading_config', {}).get('strategy', {})
+        current_gaps = st.session_state.get('current_gaps')
+        
+        if not strategy_config:
+            st.warning("⚠️ Load a configuration first")
+            return
+        
+        if current_gaps is None or current_gaps.empty:
+            st.warning("⚠️ Scan for gaps first in the Gap Scanner tab")
+            return
+        
+        # Check trading hours
+        timing_config = st.session_state.get('paper_trading_config', {}).get('paper_trading', {})
+        current_time = datetime.now().time()
+        within_trading_hours = True
+        
+        if timing_config:
+            trading_start = datetime.strptime(timing_config.get('trading_start', '09:35'), '%H:%M').time()
+            trading_end = datetime.strptime(timing_config.get('trading_end', '15:30'), '%H:%M').time()
+            within_trading_hours = trading_start <= current_time <= trading_end
+        
+        # Strategy execution controls
+        st.info("💡 Ready to execute strategy-based trades")
+        
+        col1, col2 = st.columns([2, 1])
+        
+        with col1:
+            auto_trade_symbols = st.multiselect(
+                "Select Stocks to Trade",
+                options=current_gaps['symbol'].tolist(),
+                default=current_gaps['symbol'].tolist()[:min(3, len(current_gaps))],
+                help="Choose which gap stocks to trade"
+            )
+        
+        with col2:
+            st.markdown("<br>", unsafe_allow_html=True)
+            
+            button_disabled = timing_config and not within_trading_hours
+            button_help = "Outside configured trading hours" if button_disabled else "Execute strategy trades"
+            
+            execute_strategy = st.button(
+                "🎯 Execute Strategy", 
+                type="primary", 
+                use_container_width=True,
+                disabled=button_disabled,
+                help=button_help
+            )
+        
+        # Handle strategy execution
+        if execute_strategy and auto_trade_symbols:
+            with st.spinner("Executing strategy trades..."):
+                position_size = strategy_config.get('position_size_usd', 1000)
+                max_positions = strategy_config.get('max_positions', 5)
+                
+                # Check current position count
+                try:
+                    current_positions = api.list_positions()
+                    position_count = len([p for p in current_positions if float(p.qty) != 0])
+                    
+                    if position_count >= max_positions:
+                        st.warning(f"⚠️ Maximum positions ({max_positions}) already reached. Close some positions first.")
+                        return
+                        
+                except Exception as e:
+                    st.warning(f"Could not check current positions: {e}")
+                
+                successful_orders = 0
+                failed_orders = 0
+                
+                for symbol in auto_trade_symbols[:max_positions - position_count]:
+                    try:
+                        # Get current price
+                        quote = api.get_latest_quote(symbol)
+                        if quote and quote._raw:
+                            ask_price = float(quote._raw.get('ap', 0))
+                            bid_price = float(quote._raw.get('bp', 0))
+                            current_price = ask_price if ask_price > 0 else bid_price
+                            
+                            if current_price > 0:
+                                qty = max(1, int(position_size / current_price))
+                                
+                                order = api.submit_order(
+                                    symbol=symbol,
+                                    qty=qty,
+                                    side='buy',
+                                    type='market',
+                                    time_in_force='day'
+                                )
+                                
+                                st.success(f"✅ {symbol}: Bought {qty} shares @ ~${current_price:.2f} (Order: {order.id})")
+                                successful_orders += 1
+                            else:
+                                st.error(f"❌ {symbol}: No valid price available")
+                                failed_orders += 1
+                                
+                    except Exception as e:
+                        st.error(f"❌ {symbol}: Failed to place order - {e}")
+                        failed_orders += 1
+                
+                # Summary
+                if successful_orders > 0:
+                    st.success(f"🎯 Strategy executed: {successful_orders} orders placed successfully")
+                    if failed_orders > 0:
+                        st.warning(f"⚠️ {failed_orders} orders failed")
+                    st.info("🔔 Monitor positions in Account Overview below")
+                else:
+                    st.error("❌ No orders were successfully placed")
+    
+    # Get final strategy config for other sections
+    strategy_config = st.session_state.get('paper_trading_config', {}).get('strategy', {})
+    
+    
+    # Manual Trading Section
+    st.markdown("---")
+    st.subheader("🔧 Manual Trading")
+    
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        manual_ticker = st.text_input("Ticker", placeholder="AAPL").upper()
+    
+    with col2:
+        manual_qty = st.number_input("Quantity", min_value=1, value=100)
+    
+    with col3:
+        st.markdown("<br>", unsafe_allow_html=True)
+        manual_buy = st.button("🟢 BUY", disabled=not manual_ticker)
+    
+    with col4:
+        st.markdown("<br>", unsafe_allow_html=True)
+        manual_sell = st.button("🔴 SELL", disabled=not manual_ticker)
+    
+    # Handle manual orders
+    if (manual_buy or manual_sell) and manual_ticker:
+        side = 'buy' if manual_buy else 'sell'
+        with st.spinner(f"Placing {side} order for {manual_qty} shares of {manual_ticker}..."):
+            try:
+                order = api.submit_order(
+                    symbol=manual_ticker,
+                    qty=manual_qty,
+                    side=side,
+                    type='market',
+                    time_in_force='day'
+                )
+                st.success(f"✅ {side.title()} order submitted for {manual_ticker} (Order: {order.id})")
+            except Exception as e:
+                st.error(f"❌ Failed to place {side} order: {e}")
+    
+    # Account Overview Section
+    st.markdown("---")
+    st.subheader("📊 Paper Account Overview")
+    
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        if st.button("💼 Current Positions"):
+            try:
+                positions = api.list_positions()
+                if positions:
+                    pos_data = []
+                    for pos in positions:
+                        if float(pos.qty) != 0:
+                            pos_data.append({
+                                "Symbol": pos.symbol,
+                                "Qty": int(float(pos.qty)),
+                                "Avg Cost": f"${float(pos.avg_entry_price):.2f}",
+                                "Market Value": f"${float(pos.market_value):,.2f}",
+                                "P&L": f"${float(pos.unrealized_pl):,.2f}",
+                                "P&L %": f"{float(pos.unrealized_plpc)*100:.1f}%"
+                            })
+                    
+                    if pos_data:
+                        st.dataframe(pd.DataFrame(pos_data), use_container_width=True)
+                    else:
+                        st.info("No positions")
+                else:
+                    st.info("No positions found")
+            except Exception as e:
+                st.error(f"Error: {e}")
+    
+    with col2:
+        if st.button("📋 Recent Orders"):
+            try:
+                orders = api.list_orders(status='all', limit=10)
+                if orders:
+                    order_data = []
+                    for order in orders:
+                        order_data.append({
+                            "Symbol": order.symbol,
+                            "Side": order.side.upper(),
+                            "Qty": int(order.qty),
+                            "Status": order.status.upper(),
+                            "Time": order.submitted_at.strftime("%H:%M") if order.submitted_at else "N/A"
+                        })
+                    st.dataframe(pd.DataFrame(order_data), use_container_width=True)
+                else:
+                    st.info("No recent orders")
+            except Exception as e:
+                st.error(f"Error: {e}")
+    
+    with col3:
+        if st.button("💰 Account Info"):
+            try:
+                account = api.get_account()
+                st.metric("Buying Power", f"${float(account.buying_power):,.2f}")
+                st.metric("Portfolio Value", f"${float(account.portfolio_value):,.2f}")
+                st.metric("Day P&L", f"${float(account.todays_change):,.2f}")
+            except Exception as e:
+                st.error(f"Error: {e}")
+
+
 def show_configuration_page(config: Config):
     """Show configuration management page."""
     st.header("⚙️ System Configuration")
@@ -907,6 +1571,41 @@ def show_system_status_page(config: Config, data_manager: DataManager):
             title="Storage Usage by Category"
         )
         st.plotly_chart(fig, use_container_width=True)
+
+
+def display_yahoo_gaps_table(gaps_df: pd.DataFrame):
+    """Display formatted gaps table from Yahoo Finance data."""
+    if gaps_df.empty:
+        st.info("No gaps to display")
+        return
+    
+    # Format the dataframe for display
+    display_df = gaps_df.copy()
+    
+    # Format percentage columns
+    display_df['gap_pct_formatted'] = display_df['gap_pct'].apply(lambda x: f"{x:.2%}")
+    
+    # Format price and volume
+    display_df['current_price_formatted'] = display_df['current_price'].apply(lambda x: f"${x:.2f}" if x > 0 else "N/A")
+    display_df['current_volume_formatted'] = display_df['current_volume'].apply(lambda x: f"{x:,.0f}" if x > 0 else "N/A")
+    
+    # Select and rename columns for display
+    display_columns = {
+        'symbol': 'Symbol',
+        'gap_pct_formatted': 'Gap %',
+        'gap_direction': 'Direction',
+        'current_price_formatted': 'Current Price',
+        'current_volume_formatted': 'Volume',
+        'source': 'Source'
+    }
+    
+    final_df = display_df[list(display_columns.keys())].rename(columns=display_columns)
+    
+    st.dataframe(
+        final_df,
+        use_container_width=True,
+        hide_index=True
+    )
 
 
 def display_gaps_table(gaps_df: pd.DataFrame):
